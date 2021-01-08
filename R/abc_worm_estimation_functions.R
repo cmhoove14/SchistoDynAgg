@@ -147,13 +147,17 @@ gen_case1_data <- function(pars, n){
   Nf <- rpois(n, Ni*0.5)
   Nm <- Ni-Nf
   
+# Get number ated pairs as minimum of individual male and female burdens  
   Xi <- matrixStats::rowMins(cbind(Nm,Nf))
   
   h <- pars[3]      # Mean daily egg release per mated female worm per 10mL urine
   r <- pars[4]      # Aggregation parameter of h assuming neg. binomial dist'n
+  g <- pars[5]      # Dens. dependent fecundity parameter
   
 # Simulate individual egg burdens by randomly generating egg release for each mated pair
-  Ei <- rnbinom(n, mu = h*Xi, size = r)
+  ddf <- exp(-g*Ni)
+  
+  Ei <- rnbinom(n, mu = h*Xi*ddf, size = r)
   
 # Get adjusted prevalence as number people egg positive squared over number people  
   E_pos2n <- sum(Ei > 0)^2/n
@@ -202,9 +206,12 @@ gen_case2_data <- function(pars, n){
   
   h <- pars[3]      # Mean daily egg release per mated female worm per 10mL urine
   r <- pars[4]      # Aggregation parameter of h assuming neg. binomial dist'n
+  g <- pars[5]      # Dens. dependent fecundity parameter
   
 # Simulate individual egg burdens by randomly generating egg release for each mated pair
-  Ei <- rnbinom(n, mu = h*Xi, size = r)
+  ddf <- exp(-g*Ni)
+  
+  Ei <- rnbinom(n, mu = h*Xi*ddf, size = r)
   
 # Get adjusted prevalence as number people egg positive squared over number people  
   E_pos2n <- sum(Ei > 0)^2/n
@@ -243,6 +250,8 @@ gen_case2_data <- function(pars, n){
 #' @param h_hi upper range of daily mean egg release per mated pair
 #' @param r_lo lower range of daily egg release dispersion
 #' @param r_hi upper range of daily egg release dispersion
+#' @param g_lo lower range of density dependent fecundity parameter
+#' @param g_hi upper range of density dependent fecundity parameter
 #' 
 #' @return matrix of priors
 #' @export
@@ -252,14 +261,16 @@ gen_case12_pars <- function(iterations,
                             mean_W_lo, mean_W_hi,
                             disp_W_lo, disp_W_hi, 
                             h_lo, h_hi, 
-                            r_lo, r_hi){
+                            r_lo, r_hi,
+                            g_lo, g_hi){
   
   mean_W <- exp(runif(iterations, log(mean_W_lo), log(mean_W_hi)))
   disp_W <- exp(runif(iterations, log(disp_W_lo), log(disp_W_hi)))
   h <- exp(runif(iterations, log(h_lo), log(h_hi)))
   r <- exp(runif(iterations, log(r_lo), log(r_hi)))
+  g <- exp(runif(iterations, log(g_lo), log(g_hi)))
   
-  return(cbind(mean_W, disp_W, h, r))
+  return(cbind(mean_W, disp_W, h, r, g))
   
 }
 
@@ -309,9 +320,12 @@ gen_case3_data <- function(pars, n){
   
   h <- pars[5]      # Mean daily egg release per mated female worm per 10mL urine
   r <- pars[6]      # Aggregation parameter of h assuming neg. binomial dist'n
+  g <- pars[7]      # Dens. dependent fecundity parameter
   
 # Simulate individual egg burdens by randomly generating egg release for each mated pair
-  Ei <- rnbinom(n, mu = h*Xi, size = r)
+  ddf <- exp(-g*Ni)
+  
+  Ei <- rnbinom(n, mu = h*Xi*ddf, size = r)
   
 # Get adjusted prevalence as number people egg positive squared over number people  
   E_pos2n <- sum(Ei > 0)^2/n
@@ -358,6 +372,8 @@ gen_case3_data <- function(pars, n){
 #' @param h_hi upper range of daily mean egg release per mated pair
 #' @param r_lo lower range of daily egg release dispersion
 #' @param r_hi upper range of daily egg release dispersion
+#' @param g_lo lower range of density dependent fecundity parameter
+#' @param g_hi upper range of density dependent fecundity parameter
 #' 
 #' @return matrix of priors
 #' @export
@@ -369,7 +385,8 @@ gen_case3_pars <- function(iterations,
                            mean_C_lo, mean_C_hi,
                            disp_C_lo, disp_C_hi, 
                            h_lo, h_hi, 
-                           r_lo, r_hi){
+                           r_lo, r_hi,
+                           g_lo, g_hi){
   
   alpha_S <- exp(runif(iterations, log(susc_shape_lo), log(susc_shape_hi)))
   beta_S <- exp(runif(iterations, log(susc_rate_lo), log(susc_rate_hi)))
@@ -377,8 +394,9 @@ gen_case3_pars <- function(iterations,
   disp_C <- exp(runif(iterations, log(disp_C_lo), log(disp_C_hi)))
   h <- exp(runif(iterations, log(h_lo), log(h_hi)))
   r <- exp(runif(iterations, log(r_lo), log(r_hi)))
+  g <- exp(runif(iterations, log(g_lo), log(g_hi)))
   
-  return(cbind(alpha_S, beta_S, mean_C, disp_C, h, r))
+  return(cbind(alpha_S, beta_S, mean_C, disp_C, h, r, g))
   
 }
 
@@ -425,9 +443,12 @@ gen_case4_data <- function(pars, n){
   
   h <- pars[4]      # Mean daily egg release per mated female worm per 10mL urine
   r <- pars[5]      # Aggregation parameter of h assuming neg. binomial dist'n
+  g <- pars[6]      # Dens. dependent fecundity parameter
   
 # Simulate individual egg burdens by randomly generating egg release for each mated pair
-  Ei <- rnbinom(n, mu = h*Xi, size = r)
+  ddf <- exp(-g*Ni)
+  
+  Ei <- rnbinom(n, mu = h*Xi*ddf, size = r)
   
 # Get adjusted prevalence as number people egg positive squared over number people  
   E_pos2n <- sum(Ei > 0)^2/n
@@ -469,6 +490,8 @@ gen_case4_data <- function(pars, n){
 #' @param h_hi upper range of daily mean egg release per mated pair
 #' @param r_lo lower range of daily egg release dispersion
 #' @param r_hi upper range of daily egg release dispersion
+#' @param g_lo lower range of density dependent fecundity parameter
+#' @param g_hi upper range of density dependent fecundity parameter
 #' 
 #' @return matrix of priors
 #' @export
@@ -477,15 +500,17 @@ gen_case4_pars <- function(iterations,
                            mean_W_lo, mean_W_hi,
                            disp_W_lo, disp_W_hi, 
                            h_lo, h_hi, 
-                           r_lo, r_hi){
+                           r_lo, r_hi,
+                           g_lo, g_hi){
   
   mean_W <- exp(runif(iterations, log(mean_W_lo), log(mean_W_hi)))
   disp_W <- exp(runif(iterations, log(disp_W_lo), log(disp_W_hi)))
   part_W <- runif(iterations)
   h <- exp(runif(iterations, log(h_lo), log(h_hi)))
   r <- exp(runif(iterations, log(r_lo), log(r_hi)))
+  g <- exp(runif(iterations, log(g_lo), log(g_hi)))
   
-  return(cbind(mean_W, disp_W, part_W, h, r))
+  return(cbind(mean_W, disp_W, part_W, h, r, g))
   
 }
 
@@ -522,6 +547,8 @@ gen_case4_pars <- function(iterations,
     h_hi = priors[["h_hi"]]
     r_lo = priors[["r_lo"]]
     r_hi = priors[["r_hi"]]
+    g_lo = priors[["g_lo"]]
+    g_hi = priors[["g_hi"]]
   
   #Extact observedsummary statistics
     obs_sum <- c(obs_data[["UF_mean"]], obs_data[["UF_se"]], obs_data[["UFpos2n"]])
@@ -531,7 +558,8 @@ gen_case4_pars <- function(iterations,
                               mean_W_lo = mean_W_lo, mean_W_hi = mean_W_hi,
                               disp_W_lo = disp_W_lo, disp_W_hi = disp_W_hi,
                               h_lo = h_lo, h_hi = h_hi,
-                              r_lo = r_lo, r_hi = r_hi)
+                              r_lo = r_lo, r_hi = r_hi,
+                              g_lo = g_lo, g_hi = g_hi)
     
   # Generate parameter sets for case 3 
     pars3 <- gen_case3_pars(iterations = iterations,
@@ -540,14 +568,16 @@ gen_case4_pars <- function(iterations,
                             mean_C_lo = mean_C_lo, mean_C_hi = mean_C_hi,
                             disp_C_lo = disp_C_lo, disp_C_hi = disp_C_hi, 
                             h_lo = h_lo, h_hi = h_hi, 
-                            r_lo = r_lo, r_hi = r_hi)
+                            r_lo = r_lo, r_hi = r_hi,
+                            g_lo = g_lo, g_hi = g_hi)
     
   # Generate parameter sets for case 4 
     pars4 <- gen_case4_pars(iterations = iterations,
                             mean_W_lo = mean_W_lo, mean_W_hi = mean_W_hi,
                             disp_W_lo = disp_W_lo, disp_W_hi = disp_W_hi,
                             h_lo = h_lo, h_hi = h_hi,
-                            r_lo = r_lo, r_hi = r_hi)
+                            r_lo = r_lo, r_hi = r_hi,
+                            g_lo = g_lo, g_hi = g_hi)
     
     
   # Simulate data and get summary statistics
@@ -559,29 +589,29 @@ gen_case4_pars <- function(iterations,
   out_init <- tryCatch({
   # Use abc to get posteriors with ridge regression correction
     abc1 <- abc(target = obs_sum,
-                param = pars12[,1:3],
-                sumstat = dat1[,1:3],
+                param = pars12[,1:2],  # Mean and dispersion parameter
+                sumstat = dat1[,1:3],  # Three summary stats
                 tol = 100/iterations,
                 transf = "log",
                 method = "ridge")
 
     abc2 <- abc(target = obs_sum,
-                param = pars12[,1:3],
-                sumstat = dat2[,1:3],
+                param = pars12[,1:2],  # Mean and dispersion parameter
+                sumstat = dat2[,1:3],  # Three summary stats
                 tol = 100/iterations,
                 transf = "log",
                 method = "ridge")
   
     abc3 <- abc(target = obs_sum,
-                param = pars3[,3:5],
-                sumstat = dat3[,1:3],
+                param = pars3[,3:4],   # Mean and dispersion of cercarial exposure
+                sumstat = dat3[,1:3],  # Three summary stats
                 tol = 100/iterations,
                 transf = "log",
                 method = "ridge")
 
     abc4 <- abc(target = obs_sum,
-                param = pars4[,1:4],
-                sumstat = dat4[,1:3],
+                param = pars4[,1:3],   # Mean and dispersion parameters and partitioning parameter
+                sumstat = dat4[,1:3],  # Three summary stats
                 tol = 100/iterations,
                 transf = "log",
                 method = "ridge")

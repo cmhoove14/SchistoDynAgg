@@ -7,7 +7,9 @@
 # Setup ---------------
   devtools::load_all()
   
+# Choose whether to rerun all sims or load previous sims from sims_file
   rerun <- FALSE
+  sims_file <- "abc_fit_ridge_log_4cases_1e5iterations2021-01-06.rds"
 
 # Load data and process for input to ABC ---------------
   adlt_sums <- readRDS(here::here("Data", "Derived", "adults_shehia_sums_Unguja_Pemba_2012_2017.rds"))
@@ -54,10 +56,12 @@
     "mean_C_hi" = 1e6,
     "disp_C_lo" = 1e-5,
     "disp_C_hi" = 1e5,
-    "h_lo" = 3,
-    "h_hi" = 30,
+    "h_lo" = 10,
+    "h_hi" = 10,
     "r_lo" = 1,
-    "r_hi" = 1
+    "r_hi" = 1,
+    "g_lo" = 0.001,
+    "g_hi" = 0.001
   )
   
   #Setup for running jobs across parallel nodes in cluster
@@ -90,7 +94,7 @@ if(rerun){
     abc_sims,
     file = here::here("Data", "Derived", 
                       paste0(
-                        "abc_fit_ridge_log_4cases_",
+                        "abc_fit_ridge_log_4cases_hrg_fixed_",
                         n_iter,
                         "iterations",
                         Sys.Date(),
@@ -98,7 +102,7 @@ if(rerun){
                       ))
   )    
 }  else {
-  abc_sims <- readRDS(here::here("Data", "Derived", "abc_fit_ridge_log_4cases_1e5iterations2021-01-06.rds"))
+  abc_sims <- readRDS(here::here("Data", "Derived", sims_file))
 }
 
   
@@ -282,7 +286,7 @@ error = function(cond){
   
 }))
 
-# Get summaries from actual generated data, weighted by posterior fits
+# Get summaries from actual generated data, weighted by posterior fits --------------------
 abc_gendata_sums <- do.call(rbind, lapply(abc_sims, function(abc_run){
   shehia <- as.character(abc_run[[1]])
   year <- as.integer(abc_run[[2]])
@@ -542,7 +546,7 @@ error = function(cond){
   return(df.out)
 }))
 
-# Get model comparison summaries
+# Get model comparison summaries ------------------------
 abc_fit_stats <- do.call(rbind, lapply(abc_sims, function(abc_run){
   shehia <- as.character(abc_run[[1]])
   year <- as.integer(abc_run[[2]])
@@ -564,7 +568,7 @@ abc_fit_stats <- do.call(rbind, lapply(abc_sims, function(abc_run){
                          "IVtoIII_BayesF" = NA)
   } else {
     
-    abc_fit_sum <- quiet(abc:::summary.postpr(abc_run[[7]]))
+    abc_fit_sum <- quiet(abc:::summary.postpr(abc_run[[8]]))
     
     if(is.null(abc_fit_sum$mnlogistic)){
       
