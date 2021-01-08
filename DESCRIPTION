@@ -26,6 +26,10 @@ Depends:
     geepack, 
     gridExtra, 
     rootSolve, 
+    parallel,
+    doParallel,
+    doRNG,
+    foreach,
     abc, 
     coda, 
     here

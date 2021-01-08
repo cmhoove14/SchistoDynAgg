@@ -8,7 +8,7 @@
   devtools::load_all()
   
 # Choose whether to rerun all sims or load previous sims from sims_file
-  rerun <- FALSE
+  rerun <- TRUE
   sims_file <- "abc_fit_ridge_log_4cases_1e5iterations2021-01-06.rds"
 
 # Load data and process for input to ABC ---------------
@@ -70,8 +70,10 @@
 if(rerun){
   start.time <- Sys.time()
   n_cores <- parallel::detectCores()
-  cl <- makeCluster(n_cores)
+  cl <- parallel::makeCluster(n_cores)
   registerDoParallel(cl)
+  
+  clusterEvalQ(cl, devtools::load_all())
   
   abc_sims <- foreach(
     x = 1:nrow(yO),

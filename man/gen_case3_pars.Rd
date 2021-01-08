@@ -17,7 +17,9 @@ gen_case3_pars(
   h_lo,
   h_hi,
   r_lo,
-  r_hi
+  r_hi,
+  g_lo,
+  g_hi
 )
 }
 \arguments{
@@ -46,6 +48,10 @@ gen_case3_pars(
 \item{r_lo}{lower range of daily egg release dispersion}
 
 \item{r_hi}{upper range of daily egg release dispersion}
+
+\item{g_lo}{lower range of density dependent fecundity parameter}
+
+\item{g_hi}{upper range of density dependent fecundity parameter}
 }
 \value{
 matrix of priors
