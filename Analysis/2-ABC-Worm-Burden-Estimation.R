@@ -593,7 +593,10 @@ abc_fit_stats <- do.call(rbind, lapply(abc_sims, function(abc_run){
                          "Case4_Post.Prob" = abc_fit_sum$mnlogistic$Prob[4],
                          "IIItoI_BayesF" = abc_fit_sum$mnlogistic$BayesF[3,1],
                          "IIItoII_BayesF" = abc_fit_sum$mnlogistic$BayesF[3,2],
-                         "IItoI_BayesF" = abc_fit_sum$mnlogistic$BayesF[2,1])
+                         "IItoI_BayesF" = abc_fit_sum$mnlogistic$BayesF[2,1],
+                         "IVtoI_BayesF" =  abc_fit_sum$mnlogistic$BayesF[4,1],
+                         "IVtoII_BayesF" =  abc_fit_sum$mnlogistic$BayesF[4,2],
+                         "IVtoIII_BayesF" =  abc_fit_sum$mnlogistic$BayesF[4,3])
       
     }
     
@@ -644,7 +647,19 @@ abc_sumstats <- do.call(rbind, lapply(abc_sims, function(abc_run){
                        "Case3_genEse.hiq" = NA,
                        "Case3_genEpos2n.med" = NA,
                        "Case3_genEpos2n.loq" = NA,
-                       "Case3_genEpos2n.hiq" = NA)
+                       "Case3_genEpos2n.hiq" = NA,
+                      
+                      # case 4 summary stats 
+                       "Case4_genE.med" = NA,
+                       "Case4_genE.loq" = NA,
+                       "Case4_genE.hiq" = NA,
+                       "Case4_genEse.med" = NA,
+                       "Case4_genEse.loq" = NA,
+                       "Case4_genEse.hiq" = NA,
+                       "Case4_genEpos2n.med" = NA,
+                       "Case4_genEpos2n.loq" = NA,
+                       "Case4_genEpos2n.hiq" = NA)
+
   } else {
     
   abc_case1_ss <- abc_run[[4]]$ss 
@@ -653,6 +668,7 @@ abc_sumstats <- do.call(rbind, lapply(abc_sims, function(abc_run){
 
   abc_case3_ss <- abc_run[[6]]$ss 
 
+  abc_case4_ss <- abc_run[[7]]$ss 
   
   out.df <- data.frame("Shehia" = shehia,
                        "Year" = year,
@@ -688,8 +704,18 @@ abc_sumstats <- do.call(rbind, lapply(abc_sims, function(abc_run){
                        "Case3_genEse.hiq" = quantile(abc_case3_ss[,2], 0.75),
                        "Case3_genEpos2n.med" = quantile(abc_case3_ss[,3], 0.5),
                        "Case3_genEpos2n.loq" = quantile(abc_case3_ss[,3], 0.25),
-                       "Case3_genEpos2n.hiq" = quantile(abc_case3_ss[,3], 0.75))
+                       "Case3_genEpos2n.hiq" = quantile(abc_case3_ss[,3], 0.75),
     
+                      # case 4 summary stats 
+                       "Case4_genE.med" = quantile(abc_case4_ss[,1], 0.5),
+                       "Case4_genE.loq" = quantile(abc_case4_ss[,1], 0.25),
+                       "Case4_genE.hiq" = quantile(abc_case4_ss[,1], 0.75),
+                       "Case4_genEse.med" = quantile(abc_case4_ss[,2], 0.5),
+                       "Case4_genEse.loq" = quantile(abc_case4_ss[,2], 0.25),
+                       "Case4_genEse.hiq" = quantile(abc_case4_ss[,2], 0.75),
+                       "Case4_genEpos2n.med" = quantile(abc_case4_ss[,3], 0.5),
+                       "Case4_genEpos2n.loq" = quantile(abc_case4_ss[,3], 0.25),
+                       "Case4_genEpos2n.hiq" = quantile(abc_case4_ss[,3], 0.75))
   }
   
   return(out.df)

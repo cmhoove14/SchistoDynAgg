@@ -4,6 +4,97 @@
 # ----------------------------
 
 
+# Couple util functions --------------
+
+#' @title Quitely run
+#' 
+#' @description Run without outputting messages/warnings
+#' 
+#' @param x command call
+#' 
+#' @return silent result of command call
+#' @export
+#'
+
+quiet <- function(x) { 
+  sink(tempfile()) 
+  on.exit(sink()) 
+  invisible(force(x)) 
+} 
+
+
+
+
+
+#' @title Case 3 mean from parameters
+#' 
+#' @description Analytic estimate of mean as combination of neg. bin. cercarial exposures and gamma susceptibility
+#' 
+#' @param alphaS gamma shape parameter for susceptibility
+#' @param betaS gamma rate parameter for susceptibility
+#' @param meanC mean cercarial exposure
+#' 
+#' @return estimate of mean
+#' @export
+#'
+
+est_case3_meanW <- function(alphaS, betaS, meanC){
+  alphaS*betaS*meanC
+}
+
+
+
+
+#' @title Case 3 variance from parameters
+#' 
+#' @description Analytic estimate of variance as combination of neg. bin. cercarial exposures and gamma susceptibility
+#' 
+#' @param alphaS gamma shape parameter for susceptibility
+#' @param betaS gamma rate parameter for susceptibility
+#' @param meanC mean cercarial exposure
+#' @param alphaC inverse dispersion parameter of cercarial exposure
+#' 
+#' @return estimate of variance
+#' @export
+#'
+
+est_case3_varW <- function(alphaS, betaS, meanC, alphaC){
+  meanS <- alphaS*betaS
+  varS <- alphaS*betaS^2
+  varC <- meanC^2*alphaC+meanC
+  (varC+meanC^2)*(varS+meanS^2)-(meanS*meanC)^2
+}
+
+
+
+
+
+
+#' @title Moments estimator of dispersion parameter
+#' 
+#' @description 
+#' 
+#' @param meanW mean worm burden
+#' @param varW variance of worm burden
+#' 
+#' @return estimate of dispersion parameter
+#' @export
+#'
+
+est_dispW <- function(meanW, varW){
+  (varW-meanW)/meanW^2
+}
+
+
+
+
+
+
+
+
+
+
+
 #' @title Median and IQR of abc posterior
 #' 
 #' @description Utility function to return median and 25th and 75th quantiles of posterior distribution from ABC sim
