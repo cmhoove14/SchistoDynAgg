@@ -1,6 +1,7 @@
+library(tidyverse)
+library(abc)
 
-abc_sims <- readRDS(here::here("Data/Derived/abc_fit_ridge_log_4cases_hrg_fixed_1e+05iterations.rds"
-                      ))
+abc_sims <- readRDS(here::here("Data/Derived/abc_fit_ridge_log_4cases_hrg_fixed_1e+05iterations.rds"))
 
 # Get posterior summaries ----------------------
 abc_posterior_sums <- bind_rows(lapply(abc_sims, function(abc_run){
@@ -617,11 +618,13 @@ abc_sumstats <- do.call(rbind, lapply(abc_sims, function(abc_run){
   return(out.df)
 }))
 
-
-abc_fin_df <- cbind(yO, abc_posterior_sums[,-c(1:3)], abc_gendata_sums[,-c(1:3)], abc_fit_stats [,-c(1:3)], abc_sumstats[,-c(1:3)])
+# Final datasets for analysis -----------
+abc_fin_df <- cbind(yO, 
+                    abc_posterior_sums[,-c(1:3)], 
+                    abc_gendata_sums[,-c(1:3)], 
+                    abc_fit_stats [,-c(1:3)], 
+                    abc_sumstats[,-c(1:3)])
   
-#abc_fin_df <- readRDS(here::here("Data/abc_fit_1e6iterations_processed.rds"))
-
 abc_fin_df2 <- abc_fin_df %>% 
   # Determine for Case 3 if closer to Case 1 or Case2 estimates
   mutate(Case3_diff1 = (Case1_W.med-Case3_W.med)^2,
