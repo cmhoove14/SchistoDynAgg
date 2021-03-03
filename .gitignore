@@ -40,3 +40,6 @@ vignettes/*.pdf
 
 # Data not for sharing
 Data
+
+# Mac
+.DS_Store
