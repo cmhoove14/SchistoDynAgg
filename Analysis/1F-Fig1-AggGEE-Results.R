@@ -1,6 +1,6 @@
 
 load(here::here("Data/Derived/gee_results.Rdata"))
-boot_out <- readRDS(here::here("Data/Derived/", paste0("dispersion_change_IQR_boot1000.rds")))
+boot_out <- readRDS(here::here("Data/Derived", paste0("dispersion_change_IQR_boot1000.rds")))
 
 
 boot_out$E_IQR <- apply(boot_out, 1, function(x){
