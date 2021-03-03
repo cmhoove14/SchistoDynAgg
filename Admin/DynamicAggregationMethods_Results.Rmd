@@ -1,0 +1,1891 @@
+---
+title: "Dynamic Aggregation Methods and Results"
+author: "Chris Hoover"
+date: "11/29/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = TRUE,
+                      include = FALSE,
+                      message = FALSE, 
+                      fig.cap = TRUE)
+
+library(quantreg)
+library(foreign)
+library(ggplot2)
+library(patchwork)
+library(tidyverse)
+library(ggeffects)
+library(lme4)
+library(kableExtra)
+library(geepack)
+library(gridExtra)
+library(rootSolve)
+library(abc)
+library(here)
+
+devtools::load_all()
+
+```
+
+
+```{r load_ZEST_data}
+chld <- readRDS(here::here("Data/Raw/children_Unguja_Pemba_2012_2017.rds"))
+
+adlt <- readRDS(here::here("Data/Raw/adults_Unguja_Pemba_2012_2017.rds"))
+
+# Filter out pilot observations of 50 children in year 2011 and only focus on study years 2012-2017
+comm_sums <- readRDS(here::here("Data/Derived/adults&chldrn_shehia_sums_Unguja_Pemba_2012_2017.rds")) %>% 
+  filter(Year != 2011)
+
+adlt_sums <- readRDS(here::here("Data/Derived/adults_shehia_sums_Unguja_Pemba_2012_2017.rds")) %>% 
+  filter(Year != 2011)
+
+chld_sums <- readRDS(here::here("Data/Derived/chldrn_shehia_sums_Unguja_Pemba_2012_2017.rds")) %>% 
+  filter(Year != 2011)
+```
+
+# Methods  
+The ZEST project enrolled 45 administrative regions called Shehias on the island of Pemba with the goal of eliminating urogenital schistosomiasis as a public health problem (defined as reducing the prevalence of heavy infections below $1\%$) and 45 Shehias on the island of Unguja with the goal of interrupting *S. haematobium* transmission (defined as reducing the number of incident cases to zero) [CITE Knopp](https://doi.org/10.1016/S2214-109X(19)30189-5);[CITE Knopp2](https://journals.plos.org/plosntds/article?id=10.1371/journal.pntd.0007268). On each island, Shehias were randomly assigned to receive biannual MDA, biannual MDA plus snail control, or biannual MDA plus a behavioral intervention [CITE Knopp](https://doi.org/10.1016/S2214-109X(19)30189-5) [CITE behavior int](https://doi.org/10.1016/j.actatropica.2016.08.004). Cross-sectional parasitological surveys were conducted annually from 2012-2017 in each Shehia. Data used here were acquired via a formal data request to the Schistosomiasis Consortium for Operational Research and Evaluation (SCORE) and are comprised of `r nrow(adlt)` observations of parasite burden among adults and `r nrow(chld)` observations of parasite burden among school-aged children, each measured as *S. haematobium* eggs per 10mL urine.  
+
+The likelihood of the inverse negative binomial dispersion parameter, $\alpha^\mathcal{E}_{st}$, and mean community egg burden, $\mathcal{E}_{st}$, can be estimated for each shehia, $s$, and year, $t$, from individual egg counts, $e_{ist}$, as:  
+
+$$L(\mathcal{E}_{st},\alpha_{st})=\prod_{i=1}^{n_{st}}{\frac{\Gamma(e_{ist}+\alpha_{st}^{-1})}{e_{ist}!\Gamma(\alpha_{st}^{-1})}\Bigg(\frac{\alpha_{st}\mathcal{E}_{st}}{1+\alpha_{st}\mathcal{E}_{st}}\Bigg)^{e_{ist}}\Big(1+\alpha_{st}\mathcal{E}_{st}\Big)^{-1/\alpha_{st}}}$$
+
+While aggregation is most frequently reported and discussed in terms of the negative binomial dispersion parameter, $\kappa$, its inverse, $\alpha=1/\kappa$ has more desirable properties for statistical estimation and inference (see e.g.[CITE Lloyd-Smith](https://doi.org/10.1371/journal.pone.0000180)). Therefore results are presented in terms of $\kappa^\mathcal{E}_{st}$ following trivial transformation from estimates derived using $\alpha^\mathcal{E}_{st}$. 
+
+The maximum likelihood estimate of $\mathcal{E}_{st}$ is simply the empirical mean of individual egg counts, and maximum likelihood estimates of $\alpha^\mathcal{E}_{st}$ were estimated using the Brent method within the `optim` function in R [CITE]. Uncertainty in estimates of $\alpha^\mathcal{E}_{st}$ were derived from the Hessian matrix. Both $\mathcal{E}_{st}$ and $\alpha^\mathcal{E}_{st}$ were estimated among the adult (A), child (C), and total (T) populations in each shehia-year. 
+
+Weighted generalized estimating equations (GEE) with unstructured correlation matrices of the form:  
+
+$$\mathbb{E}(\alpha_{st}|\mathcal{E}_{st})=\exp[\beta_0+\beta_1\log(\mathcal{E_{st}})]$$
+
+were used to estimate the relationship between aggregation and parasite burden. Weights were assigned as the inverse of the standard error of $\alpha^\mathcal{E}_{st}$. Models stratifying by population (child, adult, or total), by intervention type (MDA only, behavioral, or snail control), and by island (Pemba or Unguja) were also estimated. Results are reported in terms of the change in $\kappa$ associated with an interquartile range increase in mean egg burden in each strata, $\Delta\kappa_{IQR}$. Clustered nonparametric bootstrapping was used to estimate uncertainty in estimates of $\Delta\kappa_{IQR}$ with $B=10000$ bootstrapped samples. 
+
+Because egg counts are an indirect estimate of parasite burden and may change non-linearly with parasite burden [CITE], we next seek to determine if changes in aggregation as measured by egg counts are indicative of changes in aggregation of the adult parasite population. We use approximate bayesian computation (ABC) to estimate mean community parasite burden and dispersion, denoted $W^\mathcal{D}_{st}$ and $\kappa^{W_\mathcal{D}}_{st}$, respectively, under three proposed data-generating mechanisms, $\mathcal{D}\in\{1,2,3\}$ (described below). Briefly, ABC proceeds by 1) sampling $i=1,...,n$ parameter sets from a prior distribution, $\theta^\mathcal{D}$; 2) simulating datasets, $y^\mathcal{D}_i$, from the priors under the given data generating mechanism; 3) deriving summary statistics, $\mathcal{S}(y^\mathcal{D}_i)$, from the generated data to compare to the observed data, $\mathcal{S}(y_O)$; 4) generating distance metrics, $\mathcal{d}\big(\mathcal{S}(y^\mathcal{D}_i),\mathcal{S}(y_O)\big)$, to assess the fit of the generated data to the observed data; and 5) accepting parameter sets that fall within a provided distance tolerance [CITE](http://dx.doi.org/10.1016/j.tree.2010.04.001) & [CITE](https://cran.r-project.org/web/packages/abc/vignettes/abcvignette.pdf). The accepted parameter sets thus represent an approximation of the posterior distribution of $\theta^\mathcal{D}$, but the estimation procedure does not require exact calculation of the likelihood of every proposed prior. Here, ABC was preferred to MCMC methods due to the number of estimates needed combined with the complexity of the likelihood function of the parasite population estimated from observed egg counts (see e.g. [de Vlas et al](https://doi.org/10.1017/S003118200006371X) and [Hubbard et al](https://doi.org/10.1017/S003118200200207X)).
+
+The three data-generating mechanisms considered correspond to the "distributed together" and "distributed separately" assumptions (Cases 1 and 2) from Robert May's seminal work on schistosome mating dynamics @mayTogethernessSchistosomesIts1977 and a third mechanism (Case 3) that considers susceptibility and exposure as independent parameters. Prior parameter distributions and data generating processes that connect simulated worm burdens and egg counts to observed egg burdens are delineated in Table 1. Briefly, Case 1 assumes worms are distributed among human hosts according to a single negative binomial distribution with 1:1 sex ratio. Case 2 assumes male, $w^m$, and female, $w^f$, worms are distributed according to separate negative binomial distributions, each with mean $0.5W$. Case 3 assumes susceptibility, $S$, interpreted as the probability a given cercarial exposure will result in an adult worm, follows a gamma distribution, and cercarial exposures follow a negative binomial distribution independent of susceptibility. Worm pairing in individual hosts is then determined from a hypergeometric distribution that incorporates individual susceptibility, cercarial exposure, and 1:1 sex ratio among cercarial exposures (Table 1). The susceptibility distribution parameters are fixed, with parameters derived from previous work [@Wang2015a; @Wang2016], such that Case 3 estimation is based on the same number of parameters (3) as Case 1 and 2. Simulated egg shedding is equivalent for all three cases, with the number of eggs shed per mated worm pair per day following a negative binomial distribution with mean $m$ and dispersion $r$ (Table 1).   
+
+The observed data, $\mathcal{S}(y_O)$, used in the ABC procedure consists of the mean community egg burden, $\mathcal{E}_{st}$; standard error of individual egg counts, $\mathrm{SE}_{st}^\mathcal{E}$; and an adjusted egg-prevalence measure--the number of egg positive individuals squared over the number of individuals--for every shehia-year among separate child and adult populations in which at least one individual had an egg count $\gt 1$. The distribution of this adjusted prevalence measure -- as opposed to the prevalence (bounded between 0 and 1) or raw number of individuals infected (an integer) -- aligns better with the ABC estimation procedure. We used the default standardized distance metric in the R package `ABC` [CITE](https://cran.r-project.org/web/packages/abc/vignettes/abcvignette.pdf) to compare the observed data to $n=100,000$ simulated datasets for each Case in each eligible shehia-year, and accepted the $100$ parameter sets with the smallest estimated distance for each simulation (e.g. tolerance of $0.001$). Posterior parameter sets were then adjusted and weighted based on their distance from the observed data using the ridge regression routine in `ABC`. Relative fits to the observed data foor each data-generating case were compared using the Bayes factor. Posterior distributions of $W_{st}$ and $\kappa_{st}^W$ were examined as described above for $\mathcal{E}_{st}$ and $\kappa^\mathcal{E}_{st}$. In addition, the mating probability was estimated for every simulated dataset as the number of mated worms per worm ($2W^\phi_{st}/W_{st}$). These estimates were then compared to analytic estimates of the mating probability derived from the mean worm burden and worm dispersion parameter as derived previously @mayTogethernessSchistosomesIts1977.
+
++--------+---------------------------------------------------------+------------------------------------------------------------+-------------------------------------------------------------------+
+|        | Case 1 (Males and females distributed together)         | Case 2 (Males and females distributed separately)          | Case 3 (Explicit susceptibility and exposure)                     |
++========+=========================================================+============================================================+===================================================================+
+| Priors | $\theta^1=\{W_{st},\kappa^W_{st},m,r\}$                 | $\theta^2=\{W_{st},\kappa^W_{st},m,r\}$                    | $\theta^3=\{C_{st},\kappa^C_{st},\alpha_S,\beta_S,m,r\}$          |
+|        | $W_{st}\sim\mathcal{U}(1\times10^{-6},1\times10^3)$     | $W_{st}\sim\mathcal{U}(1\times10^{-6},1\times10^3)$        | $C_{st}\sim\mathcal{U}(1,1\times10^6)$                            |
+|        | $k^W_{st}\sim\mathcal{U}(1\times10^{-5},1\times10^{5})$ | $k^W_{st}\sim\mathcal{U}(1\times10^{-5},1\times10^{5})$    | $\kappa^C_{st}\sim\mathcal{U}(1\times10^{-5},1\times10^{5})$      | 
+|        | $m\sim\mathcal{U}(3,30)$                                | $m\sim\mathcal{U}(3,30)$                                   | $\alpha_S=1$                                                      |
+|        | $r=1$                                                   | $r=1$                                                      | $\beta_S=500$                                                     |
+|        |                                                         |                                                            | $m\sim\mathcal{U}(3,30)$                                          |
+|        |                                                         |                                                            | $r=1$                                                             |
++--------+---------------------------------------------------------+------------------------------------------------------------+-------------------------------------------------------------------+
+| Worms  | $w_{ist}\sim\mathrm{NB}(W_{st},\kappa_{st})$            |  See below                                                 | $s_{ist}\sim\Gamma(\alpha_S,\beta_S)$                             |
+|        |                                                         |                                                            | $c_{ist}\sim\mathrm{NB}(C_{st},\kappa^C_{st})$                    |
+|        |                                                         |                                                            | $w_{ist}\sim\mathrm{Pois}(c_{ist}s_{ist})$                        |
++--------+---------------------------------------------------------+------------------------------------------------------------+-------------------------------------------------------------------+
+| Pairs  | $w^f_{ist}\sim\mathrm{Pois}(0.5w_{ist})$                | $w^f_{ist}\sim\mathrm{NB}(0.5W_{st},\kappa_{st})$          | $c^f_{ist}\sim\mathrm{Pois}(0.5c_{ist})$                          |
+|        | $w^m_{ist}=w_{ist}-w^f_{ist}$                           | $w^m_{ist}\sim\mathrm{NB}(0.5W_{st},\kappa_{st})$          | $w^f_{ist}\sim\mathrm{Hypergeometric}(c_{ist},c^f_{ist},w_{ist})$ |
+|        | $w^\Phi_{ist}=\min(w^m_{ist}, w^f_{ist})$               | $w^\Phi_{ist}=\min(w^m_{ist}, w^f_{ist})$                  | $w^m_{ist}=w_{ist}-w^f_{ist}$                                     |
+|        |                                                         |                                                            | $w^\Phi_{ist}=\min(w^m_{ist}, w^f_{ist})$                         |
++--------+---------------------------------------------------------+------------------------------------------------------------+-------------------------------------------------------------------+
+| Eggs   | $\mathcal{e}_{ist}\sim\mathrm{NB}(mw^\phi_i,r)$|                                                            |                                                                   |
++--------+---------------------------------------------------------+------------------------------------------------------------+-------------------------------------------------------------------+
+
+All analyses were performed in R version 4.0.2 utilizing the `geepack` [CITE](https://cran.r-project.org/package=geepack), `tidyverse`[CITE](https://cran.r-project.org/package=tidyverse), and `ABC`[CITE](https://cran.r-project.org/package=abc) packages. All code and derived data files necessary to reproduce the analysis can be found at https://github.com/cmhoove14/DynamicAggregation. 
+
+# Results  
+```{r gee_res_load, include = FALSE}
+
+
+boot_out <- readRDS(here::here("Data/Derived/", paste0("dispersion_change_IQR_boot10000.rds")))
+
+boot_out$E_IQR <- apply(boot_out, 1, function(x){
+  df <- get_boot_df(x[1], x[2], x[3])
+  
+  # 25th and 75th quantiles for IQR  
+  egg_burden025 <- quantile(df %>% 
+                              filter(!is.na(UF_alpha_mle_se)) %>% 
+                              pull(UF_mean), 0.25)
+  egg_burden075 <- quantile(df %>% 
+                              filter(!is.na(UF_alpha_mle_se)) %>% 
+                              pull(UF_mean), 0.75)
+
+  return(as.numeric(egg_burden075-egg_burden025))
+})
+
+boot_all_est <- boot_out %>% 
+  filter(Island == "All" & Treatment == "All" & Population == "All")
+
+```
+
+
+
+```{r strat_kappa_change, include = FALSE}
+boot_out <- readRDS(here::here("Data", paste0("dispersion_change_IQR_boot", nboot,".rds")))
+
+boot_out$E_IQR <- apply(boot_out, 1, function(x){
+  df <- get_boot_df(x[1], x[2], x[3])
+  
+  # 25th and 75th quantiles for IQR  
+  egg_burden025 <- quantile(df %>% 
+                              filter(!is.na(UF_alpha_mle_se)) %>% 
+                              pull(UF_mean), 0.25)
+  egg_burden075 <- quantile(df %>% 
+                              filter(!is.na(UF_alpha_mle_se)) %>% 
+                              pull(UF_mean), 0.75)
+
+  return(as.numeric(egg_burden075-egg_burden025))
+})
+
+boot_all_est <- boot_out %>% 
+  filter(Island == "All" & Treatment == "All" & Population == "All")
+
+strat_kap_iqr <- boot_out %>% 
+  filter(Treatment != "All" & Island != "All") %>% 
+  ggplot() +
+    theme_classic() +
+    geom_point(aes(x = Population, y = boot_meds, 
+                   col = Island, shape = Treatment),
+               size = 2, position = position_dodge(width = 0.5)) +
+    geom_errorbar(aes(x = Population, 
+                      col = Island, shape = Treatment,
+                      ymin = boot_loqs, ymax = boot_hiqs),
+                  width = 0.2, position = position_dodge(width = 0.5)) +
+    geom_point(data = boot_all_est,
+               aes(x = 0.5, y = boot_meds),
+               col = "black", size = 2) +
+    geom_errorbar(data = boot_all_est,
+                  aes(x = 0.5, ymin = boot_loqs, ymax = boot_hiqs),
+                  col = "black", width = 0.1) +
+    scale_color_manual(values = c("#d0885f", "#2d474c")) +
+    scale_shape_manual(values = c(17,18,15),
+                       labels = c("MDA Only", "MDA+Snail Control", "MDA+Behavior")) +
+    #scale_y_continuous(position = "right") +
+    geom_hline(yintercept = 0, lty = 2) +
+    labs(y = expression(Delta~kappa["IQR"]),
+         shape = "Intervention")
+
+
+strat_kap_iqr
+```
+
+There were `r nrow(comm_sums %>% filter(UF_max == 0))` shehia-years in which no individuals had positive egg counts and `r nrow(comm_sums %>% filter(UF_max == 1))` shehia-years in which the maximum individual egg count was 1 and therefore variance estimates for $\alpha^\mathcal{E}_{st}$ could not be derived. This left `r nrow(comm_sums %>% filter(UF_max > 1))` observations of $\alpha^\mathcal{E}_{st}$ and $\mathcal{E}_{st}$, shown in Figure 1A along with the marginal estimate of $\mathbb{E}(\kappa^\mathcal{E}_{st}|\mathcal{E}_{st})$ from the fitted GEE. We estimate a median `r round(boot_all_est$boot_meds,3)` (Bootstrapped IQR: `r round(boot_all_est$boot_loqs,3)`-`r round(boot_all_est$boot_hiqs,3)`) increase in $\kappa^\mathcal{E}_{st}$ associated with an IQR increase in $\mathcal{E}_{st}$, implying a negative relationship between mean egg burden and aggregation. This relationship appears to be driven by dynamics in children, as there was weak evidence for a relationship between $\kappa^\mathcal{E}_{st}$ and $\mathcal{E}_{st}$ among adults (Fig 1B). Egg burden in adults ($IQR^A=$ `r round(boot_out %>% filter(Island == "All" & Treatment == "All" & Population == "Adults") %>% pull(E_IQR), 2)`) was substantially lower than in children ($IQR^C=$ `r round(boot_out %>% filter(Island == "All" & Treatment == "All" & Population == "Children") %>% pull(E_IQR), 2)`), however. Shehias receiving the MDA+snail control and MDA+behavior change interventions appeared to have a stronger burden-aggregation relationship (larger $\Delta\kappa_{IQR}$, Fig 1B). An additional GEE model including main effects of intervention arm and island showed that reductions in $\kappa^\mathcal{E}_{st}$ were significantly larger in shehias receiving the MDA+snail control and MDA+behavioral change interventions ($p=$ `r round(gee_adj_sum %>% filter(term == "InterventionSnail") %>% pull(p.value), 3)` and $p=$ `r round(gee_adj_sum %>% filter(term == "InterventionBehaviour") %>% pull(p.value), 3)`, respectively).
+
+
+```{r fig1_out, include = TRUE, warning = FALSE, fig.height=7, fig.width=7, fig.cap="Relationship between community egg burden and dispersion. Panel A shows the scatterplot of all estimates of $\\kappa_{st}$ and $\\mathcal{E}_{st}$ where each point is sized according to its weight, derived as the inveerse of the standard error of $\\alpha_{st}$. Points are also symbolized according to their assigned intervention group--MDA only ($\\filledtriangleup$), MDA+snail control ($\\filleddiamond$), or MDA+behavioral intervention ($\\filledmedsquare$)--and the island of the shehia. The solid black line in panel A represents the marginal estimate of $\\mathbb{E}(\\kappa_{st}|\\mathcal{E}_{st})$ from the fitted GEE. Panel B shows estimates of $\\Delta\\kappa_{IQR}$, the change in aggregation for an interquartile range increase in community egg burden stratified by population, treatment group, and island. The black point and error bars correspond to the unstratified marginal estimate of $\\Delta\\kappa_{IQR}$ as in panel A. Error bars correspond to the interquartile range of estimates derived from B=5000 bootstrapped samples."}
+#extract legend
+#https://github.com/hadley/ggplot2/wiki/Share-a-legend-between-two-ggplot2-graphs
+g_legend<-function(a.gplot){
+  tmp <- ggplot_gtable(ggplot_build(a.gplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+
+f1_legend<-g_legend(strat_kap_iqr)
+
+grid.arrange(arrangeGrob(kap_e_gee_plot + theme(legend.position="none"),
+                         strat_kap_iqr + theme(legend.position="none"),
+                         nrow=2),
+             f1_legend, widths=c(4, 1))
+
+```
+
+```{r abc_worm_estimation_setup, include = FALSE}
+yOc <- chld_sums %>% 
+  filter(UF_max > 1 & Year > 2011) %>% 
+  mutate(UF_se = sqrt(UF_var)/sqrt(n_ppl),
+         UFpos2n = UF_pos^2/n_ppl,
+         Pop = "Child") %>% 
+  ungroup() %>% 
+  dplyr::select(Isl, Shehia, Intervention, Year, UF_mean, UF_se, UF_pos, n_ppl, UFpos2n, Pop)
+
+yOa <- adlt_sums %>% 
+  filter(UF_max > 1 & Year > 2011) %>% 
+  mutate(UF_se = sqrt(UF_var)/sqrt(n_ppl),
+         UFpos2n = UF_pos^2/n_ppl,
+         Pop = "Adult") %>% 
+  ungroup() %>% 
+  dplyr::select(Isl, Shehia, Intervention, Year, UF_mean, UF_se, UF_pos, n_ppl, UFpos2n, Pop)
+
+yO <- bind_rows(yOc, yOa)
+
+# Couple util functions
+quiet <- function(x) { 
+  sink(tempfile()) 
+  on.exit(sink()) 
+  invisible(force(x)) 
+} 
+
+est_case3_meanW <- function(alphaS, betaS, meanC){
+  alphaS*betaS*meanC
+}
+
+est_case3_varW <- function(alphaS, betaS, meanC, alphaC){
+  meanS <- alphaS*betaS
+  varS <- alphaS*betaS^2
+  varC <- meanC^2*alphaC+meanC
+  (varC+meanC^2)*(varS+meanS^2)-(meanS*meanC)^2
+}
+
+est_dispW <- function(meanW, varW){
+  (varW-meanW)/meanW^2
+}
+
+get_abc_med_iqr <- function(abc_pars, abc_weights){
+  myprobs <- c(0.25, 0.5, 0.75)
+  wt <- abc_weights
+  
+  quants <- apply(abc_pars, 2, function(x) quantreg::rq(x ~ 1, tau = myprobs, 
+                                                        weights = wt)$coef)
+
+  return(quants)
+}
+
+```
+
+```{r abc_worm_estimation, eval = FALSE}
+# Run on biostat computing cluster node with 24 cores ; runtime ~1.5 hours
+# ----------------------------
+# Data generation functions
+# ----------------------------
+
+# Generate synthetic case 1 dataset 
+gen_case1_data <- function(pars, n){
+  mean_W <- pars[1]    # Mean worm burden
+  disp_W <- 1/pars[2]  # Aggregation of mean worm burden
+  
+# Simulate individual worm burdens  
+  Ni <- rnbinom(n, mu = mean_W, size = disp_W) 
+  
+# Simulate pairing assuming male and female distributed together  
+  Nf <- rpois(n, Ni*0.5)
+  Nm <- Ni-Nf
+  
+  Xi <- matrixStats::rowMins(cbind(Nm,Nf))
+  
+  h <- pars[3]      # Mean daily egg release per mated female worm per 10mL urine
+  r <- pars[4]      # Aggregation parameter of h assuming neg. binomial dist'n
+  
+# Simulate individual egg burdens by randomly generating egg release for each mated pair
+  Ei <- rnbinom(n, mu = h*Xi, size = r)
+  
+# Get adjusted prevalence as number people egg positive squared over number people  
+  E_pos2n <- sum(Ei > 0)^2/n
+
+# Return summary statistics
+  return(c(E = mean(Ei),
+           E_se = sqrt(var(Ei))/sqrt(n),
+           E_pos2n = E_pos2n,
+           mean_W = mean(Ni),
+           var_W = var(Ni),
+           mean_Phi = mean(Xi),
+           var_Phi = var(Xi),
+           prob_Phi = (sum(Xi)*2)/sum(Ni),
+           non_Phi = sum(Ni)-sum(Xi)*2))
+}
+
+# Generate synthetic case 2 dataset
+gen_case2_data <- function(pars, n){
+  mean_W <- pars[1]    # Mean worm burden
+  disp_W <- 1/pars[2]     # Aggregation of mean worm burden
+  
+# Simulate pairing assuming male and female distributed separately  
+  Nf <- rnbinom(n, mu = mean_W/2, size = disp_W)
+  Nm <- rnbinom(n, mu = mean_W/2, size = disp_W)
+  Ni <- Nf+Nm
+  
+  Xi <- matrixStats::rowMins(cbind(Nm,Nf))
+  
+  h <- pars[3]      # Mean daily egg release per mated female worm per 10mL urine
+  r <- pars[4]      # Aggregation parameter of h assuming neg. binomial dist'n
+  
+# Simulate individual egg burdens by randomly generating egg release for each mated pair
+  Ei <- rnbinom(n, mu = h*Xi, size = r)
+  
+# Get adjusted prevalence as number people egg positive squared over number people  
+  E_pos2n <- sum(Ei > 0)^2/n
+
+# Return summary statistics
+  return(c(E = mean(Ei),
+           E_se = sqrt(var(Ei))/sqrt(n),
+           E_pos2n = E_pos2n,
+           mean_W = mean(Ni),
+           var_W = var(Ni),
+           mean_Phi = mean(Xi),
+           var_Phi = var(Xi),
+           prob_Phi = (sum(Xi)*2)/sum(Ni),
+           non_Phi = sum(Ni)-sum(Xi)*2))
+}
+
+# Generate case1/2 pars from priors
+gen_case12_pars <- function(iterations,
+                            mean_W_lo, mean_W_hi,
+                            disp_W_lo, disp_W_hi, 
+                            h_lo, h_hi, 
+                            r_lo, r_hi){
+  
+  mean_W <- exp(runif(iterations, log(mean_W_lo), log(mean_W_hi)))
+  disp_W <- exp(runif(iterations, log(disp_W_lo), log(disp_W_hi)))
+  h <- exp(runif(iterations, log(h_lo), log(h_hi)))
+  r <- exp(runif(iterations, log(r_lo), log(r_hi)))
+  
+  return(cbind(mean_W, disp_W, h, r))
+  
+}
+
+# Generate synthetic case 3 dataset
+gen_case3_data <- function(pars, n){
+  susc_shape <- pars[1]    # Susceptibility shape1
+  susc_rate <- pars[2]     # Susceptibility shape2
+  
+  mean_C <- pars[3]       # mean cercarial exposure
+  disp_C <- 1/pars[4]      # distribution of cercarial exposures
+# Individual susceptibilities  
+  Si <- rgamma(n, shape = susc_shape, scale = susc_rate)
+  
+# Cercarial exposures with no correlation to susceptibility
+  Ci <- rnbinom(n, mu = mean_C, size = disp_C)
+
+# Cercarial exposures resulting in adult worm 
+  Ni <- rpois(n,Ci*Si)
+  
+# Cercarial exposures which are female assuming equal sex distribution
+  Fi <- rpois(n, Ci*0.5)
+  
+# Female worms from hypergeometric dist'n
+  Nf <- rhyper(n, Ci-Fi, Fi, Ni)
+  
+# Male worms as worms not female  
+  Nm <- Ni - Nf
+  
+# Mated pairs  
+  Xi <- matrixStats::rowMins(cbind(Nm,Nf))
+  
+  h <- pars[5]      # Mean daily egg release per mated female worm per 10mL urine
+  r <- pars[6]      # Aggregation parameter of h assuming neg. binomial dist'n
+  
+# Simulate individual egg burdens by randomly generating egg release for each mated pair
+  Ei <- rnbinom(n, mu = h*Xi, size = r)
+  
+# Get adjusted prevalence as number people egg positive squared over number people  
+  E_pos2n <- sum(Ei > 0)^2/n
+
+# Return summary statistics
+  return(c(E = mean(Ei),
+           E_se = sqrt(var(Ei))/sqrt(n),
+           E_pos2n = E_pos2n,
+           mean_W = mean(Ni),
+           var_W = var(Ni),
+           mean_Phi = mean(Xi),
+           var_Phi = var(Xi),
+           prob_Phi = (sum(Xi)*2)/sum(Ni),
+           non_Phi = sum(Ni)-sum(Xi)*2,
+           mean_C = mean(Ci),
+           mean_S = mean(Si),
+           var_C = var(Ci),
+           var_S = var(Si),
+           cov_SC = cov(Si, Ci),
+           cov_S2C2 = cov(Si^2, Ci^2),
+           cor_SC = cor(Si, Ci)))
+}
+
+# Generate case 3 pars from priors
+gen_case3_pars <- function(iterations,
+                           susc_shape_lo, susc_shape_hi,
+                           susc_rate_lo, susc_rate_hi,
+                           mean_C_lo, mean_C_hi,
+                           disp_C_lo, disp_C_hi, 
+                           h_lo, h_hi, 
+                           r_lo, r_hi){
+  
+  alpha_S <- exp(runif(iterations, log(susc_shape_lo), log(susc_shape_hi)))
+  beta_S <- exp(runif(iterations, log(susc_rate_lo), log(susc_rate_hi)))
+  mean_C <- exp(runif(iterations, log(mean_C_lo), log(mean_C_hi)))
+  disp_C <- exp(runif(iterations, log(disp_C_lo), log(disp_C_hi)))
+  h <- exp(runif(iterations, log(h_lo), log(h_hi)))
+  r <- exp(runif(iterations, log(r_lo), log(r_hi)))
+  
+  return(cbind(alpha_S, beta_S, mean_C, disp_C, h, r))
+  
+}
+# Function to return ABC fits for all three cases for a given dataset ----------
+  abc_fit <- function(obs_data, priors, iterations){
+  # Extract priors  
+    mean_W_lo = priors[["mean_W_lo"]] 
+    mean_W_hi = priors[["mean_W_hi"]]
+    disp_W_lo = priors[["disp_W_lo"]]
+    disp_W_hi = priors[["disp_W_hi"]]
+    susc_shape_lo = priors[["susc_shape_lo"]]  
+    susc_shape_hi = priors[["susc_shape_hi"]]
+    susc_rate_lo = priors[["susc_rate_lo"]] 
+    susc_rate_hi = priors[["susc_rate_hi"]]
+    mean_C_lo = priors[["mean_C_lo"]]
+    mean_C_hi = priors[["mean_C_hi"]]
+    disp_C_lo = priors[["disp_C_lo"]]
+    disp_C_hi = priors[["disp_C_hi"]]
+    h_lo = priors[["h_lo"]]
+    h_hi = priors[["h_hi"]]
+    r_lo = priors[["r_lo"]]
+    r_hi = priors[["r_hi"]]
+  
+  #Extact observedsummary statistics
+    obs_sum <- c(obs_data[["UF_mean"]], obs_data[["UF_se"]], obs_data[["UFpos2n"]])
+    
+  # Generate parameter sets for cases 1 and 2  
+    pars12 <- gen_case12_pars(iterations = iterations,
+                              mean_W_lo = mean_W_lo, mean_W_hi = mean_W_hi,
+                              disp_W_lo = disp_W_lo, disp_W_hi = disp_W_hi,
+                              h_lo = h_lo, h_hi = h_hi,
+                              r_lo = r_lo, r_hi = r_hi)
+    
+  # Generate parameter sets for case 3 
+    pars3 <- gen_case3_pars(iterations = iterations,
+                            susc_shape_lo = susc_shape_lo, susc_shape_hi = susc_shape_hi,
+                            susc_rate_lo = susc_rate_lo, susc_rate_hi = susc_rate_hi,
+                            mean_C_lo = mean_C_lo, mean_C_hi = mean_C_hi,
+                            disp_C_lo = disp_C_lo, disp_C_hi = disp_C_hi, 
+                            h_lo = h_lo, h_hi = h_hi, 
+                            r_lo = r_lo, r_hi = r_hi)
+    
+  # Simulate data and get summary statistics
+    dat1 <- t(apply(X = pars12, 1, gen_case1_data, n = obs_data[["n_ppl"]]))
+    dat2 <- t(apply(X = pars12, 1, gen_case2_data, n = obs_data[["n_ppl"]]))
+    dat3 <- t(apply(X = pars3, 1, gen_case3_data, n = obs_data[["n_ppl"]]))
+
+  out_init <- tryCatch({
+  # Use abc to get posteriors with ridge regression correction
+    abc1 <- abc(target = obs_sum,
+                param = pars12[,1:3],
+                sumstat = dat1[,1:3],
+                tol = 100/iterations,
+                transf = "log",
+                method = "ridge")
+
+    abc2 <- abc(target = obs_sum,
+                param = pars12[,1:3],
+                sumstat = dat2[,1:3],
+                tol = 100/iterations,
+                transf = "log",
+                method = "ridge")
+  
+    abc3 <- abc(target = obs_sum,
+                param = pars3[,3:5],
+                sumstat = dat3[,1:3],
+                tol = 100/iterations,
+                transf = "log",
+                method = "ridge")
+    
+    abc_postpr <- postpr(target = obs_sum,
+                         index = rep(c("I", "II", "III"), each = iterations),
+                         sumstat = rbind(dat1[,1:3], dat2[,1:3], dat3[,1:3]),
+                         tol = 100/iterations,
+                         method = "mnlogistic")
+    
+    abc1_wormstats <- dat1[which(abc1$region == TRUE),4:9]
+    abc2_wormstats <- dat2[which(abc2$region == TRUE),4:9]
+    abc3_wormstats <- dat3[which(abc3$region == TRUE),4:9]
+    abc3_parstats <- dat3[which(abc3$region == TRUE),10:16]
+    
+    list(abc1, abc2, abc3, abc_postpr,
+         abc1_wormstats, abc2_wormstats, abc3_wormstats,
+         abc3_parstats)
+
+  },
+  error = function(cond){
+    list(cond)
+  })  
+
+    return(c(list(obs_data[["Shehia"]], obs_data[["Year"]]),
+             out_init))
+
+  }
+
+# Test function
+  test_priors <- list("mean_W_lo" = 1e-6, "mean_W_hi" = 1e3,
+                      "disp_W_lo" = 1e-5, "disp_W_hi" = 1e5,
+                      "susc_shape_lo" = 1, "susc_shape_hi" = 1,
+                      "susc_rate_lo" = 1/500, "susc_rate_hi" = 1/500,
+                      "mean_C_lo" = 1, "mean_C_hi" = 1e6,
+                      "disp_C_lo" = 1e-5, "disp_C_hi" = 1e5,
+                      "h_lo" = 3, "h_hi" = 30,
+                      "r_lo" = 1, "r_hi" = 1)
+  
+#Setup for running jobs across parallel nodes in cluster
+  start.time <- Sys.time()
+  n_cores <- parallel::detectCores()
+  n_iter <- 1e5
+  cl <- makeCluster(n_cores)
+  registerDoParallel(cl)
+  
+  abc_results <- foreach(x=1:nrow(yO), 
+                         .packages = c("tidyverse", "abc"),
+                         .verbose = TRUE,
+                         .options.RNG = 7491) %dorng% {
+                           
+                           abc_fit(obs_data = yO[x,],
+                                   priors = test_priors,
+                                   iterations = n_iter) 
+                         }
+  
+  parallel::stopCluster(cl)
+  
+end.time <- Sys.time()  
+  
+end.time - start.time
+
+saveRDS(abc_results, file = paste0("abc_fit_ridge_log_", 
+                                   n_iter, "iterations", Sys.Date(), ".rds"))
+```
+
+```{r abc_results_process_n1e5_hfix, include = FALSE, message = FALSE, cache = T, cache.lazy=F}
+abc_sims_hfix <- readRDS(here::here("Data", "abc_fit_ridge_log_hfix1e5iterations2020-09-30.rds"))
+
+# Get posterior summaries
+abc_posterior_sums_hfix <- bind_rows(lapply(abc_sims_hfix, function(abc_run){
+  shehia <- as.character(abc_run[[1]])
+  year <- as.integer(abc_run[[2]])
+  pop <- as.character(abc_run[[3]])
+  
+  if(length(abc_run) == 4){
+    
+  df.out <- data.frame("Shehia" = shehia,
+                       "Year" = year,
+                       "Pop" = pop,
+                      # case 1 summary stats 
+                       "Case1_W.med" = NA,
+                       "Case1_W.loq" = NA,
+                       "Case1_W.hiq" = NA,
+                       "Case1_alphaW.med" = NA,
+                       "Case1_alphaW.loq" = NA,
+                       "Case1_alphaW.hiq" = NA,
+                       # case 2 summary stats 
+                       "Case2_W.med" = NA,
+                       "Case2_W.loq" = NA,
+                       "Case2_W.hiq" = NA,
+                       "Case2_alphaW.med" = NA,
+                       "Case2_alphaW.loq" = NA,
+                       "Case2_alphaW.hiq" = NA,
+                      # case 3 summary stats 
+                       "Case3_W.med" = NA,
+                       "Case3_W.loq" = NA,
+                       "Case3_W.hiq" = NA,
+                       "Case3_alphaW.med" = NA,
+                       "Case3_alphaW.loq" = NA,
+                       "Case3_alphaW.hiq" = NA)
+  } else {
+  
+  df.out <- tryCatch({
+    # Process case 1 runs  
+  abc_case1_sum <- get_abc_med_iqr(abc_run[[4]]$adj.values, abc_run[[4]]$weights)
+
+# Process case 2 runs  
+  abc_case2_sum <- get_abc_med_iqr(abc_run[[5]]$adj.values, abc_run[[5]]$weights)
+  
+# Process case 3 runs  
+  abc_case3_pars <- abc_run[[6]]$adj.values
+    abc_case3_pars <- cbind(abc_case3_pars, 
+                            est_case3_meanW(alphaS = 1, betaS = 1/500, meanC = abc_case3_pars[,"mean_C"]),
+                            est_case3_varW(alphaS = 1, betaS = 1/500, meanC = abc_case3_pars[,"mean_C"], alphaC = abc_case3_pars[,"disp_C"]))
+      colnames(abc_case3_pars)[3:4] <- c("mean_W", "var_W")
+  
+    abc_case3_pars <- cbind(abc_case3_pars, 
+                            est_dispW(abc_case3_pars[,"mean_W"], abc_case3_pars[,"var_W"]))
+  
+      colnames(abc_case3_pars)[5] <- "disp_W"
+      
+  abc_case3_sum <- get_abc_med_iqr(abc_case3_pars, abc_run[[6]]$weights)
+  
+  data.frame("Shehia" = shehia,
+             "Year" = year,
+             "Pop" = pop,
+             # case 1 summary stats 
+             "Case1_W.med" = abc_case1_sum[2,"mean_W"],
+             "Case1_W.loq" = abc_case1_sum[1, "mean_W"],
+             "Case1_W.hiq" = abc_case1_sum[3, "mean_W"],
+             "Case1_alphaW.med" = abc_case1_sum[2,"disp_W"],
+             "Case1_alphaW.loq" = abc_case1_sum[1,"disp_W"],
+             "Case1_alphaW.hiq" = abc_case1_sum[3,"disp_W"],
+             # case 2 summary stats 
+             "Case2_W.med" = abc_case2_sum[2,"mean_W"],
+             "Case2_W.loq" = abc_case2_sum[1, "mean_W"],
+             "Case2_W.hiq" = abc_case2_sum[3, "mean_W"],
+             "Case2_alphaW.med" = abc_case2_sum[2,"disp_W"],
+             "Case2_alphaW.loq" = abc_case2_sum[1,"disp_W"],
+             "Case2_alphaW.hiq" = abc_case2_sum[3,"disp_W"],
+             # case 3 summary stats 
+             "Case3_W.med" = abc_case3_sum[2,"mean_W"],
+             "Case3_W.loq" = abc_case3_sum[1, "mean_W"],
+             "Case3_W.hiq" = abc_case3_sum[3, "mean_W"],
+             "Case3_alphaW.med" = abc_case3_sum[2,"disp_W"],
+             "Case3_alphaW.loq" = abc_case3_sum[1,"disp_W"],
+             "Case3_alphaW.hiq" = abc_case3_sum[3,"disp_W"])
+
+  },
+error = function(cond){
+  data.frame("Shehia" = shehia,
+             "Year" = year,
+             "Pop" = pop,
+             # case 1 summary stats 
+             "Case1_W.med" = NA,
+             "Case1_W.loq" = NA,
+             "Case1_W.hiq" = NA,
+             "Case1_alphaW.med" = NA,
+             "Case1_alphaW.loq" = NA,
+             "Case1_alphaW.hiq" = NA,
+             # case 2 summary stats 
+             "Case2_W.med" = NA,
+             "Case2_W.loq" = NA,
+             "Case2_W.hiq" = NA,
+             "Case2_alphaW.med" = NA,
+             "Case2_alphaW.loq" = NA,
+             "Case2_alphaW.hiq" = NA,
+             # case 3 summary stats 
+             "Case3_W.med" = NA,
+             "Case3_W.loq" = NA,
+             "Case3_W.hiq" = NA,
+             "Case3_alphaW.med" = NA,
+             "Case3_alphaW.loq" = NA,
+             "Case3_alphaW.hiq" = NA)
+  
+})    
+
+  }
+  
+  return(df.out)
+  
+}))
+
+# Get summaries from actual generated data, weighted by posterior fits
+abc_gendata_sums_hfix <- do.call(rbind, lapply(abc_sims_hfix, function(abc_run){
+  shehia <- as.character(abc_run[[1]])
+  year <- as.integer(abc_run[[2]])
+  pop <- as.character(abc_run[[3]])
+  
+  if(length(abc_run) == 4){
+    df.out <- data.frame("Shehia" = shehia,
+                         "Year" = year,
+                         "Pop" = pop,
+                         # case 1 summary stats 
+                         "Case1_obsW.med" = NA,
+                         "Case1_obsW.loq" = NA,
+                         "Case1_obsW.hiq" = NA,
+                         "Case1_obsalphaW.med" = NA,
+                         "Case1_obsalphaW.loq" = NA,
+                         "Case1_obsalphaW.hiq" = NA,
+                         "Case1_obsPhiProbW.med" = NA,
+                         "Case1_obsPhiProbW.loq" = NA,
+                         "Case1_obsPhiProbW.hiq" = NA,
+                         "Case1_obsNonPhiW.med" = NA,
+                         "Case1_obsNonPhiW.loq" = NA,
+                         "Case1_obsNonPhiW.hiq" = NA,
+                         "Case1_corSC.med" = NA,
+                         "Case1_corSC.loq" = NA,
+                         "Case1_corSC.hiq" = NA,
+                         # case 2 summary stats 
+                         "Case2_obsW.med" = NA,
+                         "Case2_obsW.loq" = NA,
+                         "Case2_obsW.hiq" = NA,
+                         "Case2_obsalphaW.med" = NA,
+                         "Case2_obsalphaW.loq" = NA,
+                         "Case2_obsalphaW.hiq" = NA,
+                         "Case2_obsPhiProbW.med" = NA,
+                         "Case2_obsPhiProbW.loq" = NA,
+                         "Case2_obsPhiProbW.hiq" = NA,
+                         "Case2_obsNonPhiW.med" = NA,
+                         "Case2_obsNonPhiW.loq" = NA,
+                         "Case2_obsNonPhiW.hiq" = NA,
+                         "Case2_corSC.med" = NA,
+                         "Case2_corSC.loq" = NA,
+                         "Case2_corSC.hiq" = NA,
+                         # case 3 summary stats 
+                         "Case3_obsW.med" = NA,
+                         "Case3_obsW.loq" = NA,
+                         "Case3_obsW.hiq" = NA,
+                         "Case3_obsalphaW.med" = NA,
+                         "Case3_obsalphaW.loq" = NA,
+                         "Case3_obsalphaW.hiq" = NA,
+                         "Case3_obsPhiProbW.med" = NA,
+                         "Case3_obsPhiProbW.loq" = NA,
+                         "Case3_obsPhiProbW.hiq" = NA,
+                         "Case3_obsNonPhiW.med" = NA,
+                         "Case3_obsNonPhiW.loq" = NA,
+                         "Case3_obsNonPhiW.hiq" = NA,
+                         "Case3_corSC.med" = NA,
+                         "Case3_corSC.loq" = NA,
+                         "Case3_corSC.hiq" = NA)
+  } else {
+
+  df.out <- tryCatch({
+# Process case 1 runs  
+  abc_case1_obs <- abc_run[[8]]
+    abc_case1_obs <- cbind(abc_case1_obs, 
+                           est_dispW(abc_case1_obs[,"mean_W"], abc_case1_obs[,"var_W"]))
+    colnames(abc_case1_obs)[ncol(abc_case1_obs)] <- "disp_W"
+    
+  abc_case1_obs_sum <- get_abc_med_iqr(abc_case1_obs, abc_run[[4]]$weights)
+  
+#Process case 2 runs    
+  abc_case2_obs <- abc_run[[9]]
+    abc_case2_obs <- cbind(abc_case2_obs, 
+                           est_dispW(abc_case2_obs[,"mean_W"], abc_case2_obs[,"var_W"]))
+    colnames(abc_case2_obs)[ncol(abc_case2_obs)] <- "disp_W"
+  
+  abc_case2_obs_sum <- get_abc_med_iqr(abc_case2_obs, abc_run[[5]]$weights)
+
+#Process case 3 runs (requires more since exposure and susceptibility are separate)
+  abc_case3_obs <- abc_run[[10]]
+    abc_case3_obs <- cbind(abc_case3_obs, 
+                           est_dispW(abc_case3_obs[,"mean_W"], abc_case3_obs[,"var_W"]))
+    colnames(abc_case3_obs)[ncol(abc_case3_obs)] <- "disp_W"
+
+    abc_case3_obs <- cbind(abc_case3_obs, 
+                           abc_run[[11]][,"cor_SC"])
+    colnames(abc_case3_obs)[ncol(abc_case3_obs)] <- "cor_SC"
+          
+  abc_case3_obs_sum <- get_abc_med_iqr(abc_case3_obs, abc_run[[6]]$weights)
+
+    data.frame("Shehia" = shehia,
+               "Year" = year,
+               "Pop" = pop,
+               # case 1 summary stats 
+               "Case1_obsW.med" = abc_case1_obs_sum[2,"mean_W"],
+               "Case1_obsW.loq" = abc_case1_obs_sum[1, "mean_W"],
+               "Case1_obsW.hiq" = abc_case1_obs_sum[3, "mean_W"],
+               "Case1_obsalphaW.med" = abc_case1_obs_sum[2,"disp_W"],
+               "Case1_obsalphaW.loq" = abc_case1_obs_sum[1,"disp_W"],
+               "Case1_obsalphaW.hiq" = abc_case1_obs_sum[3,"disp_W"],
+               "Case1_obsPhiProbW.med" = abc_case1_obs_sum[2,"prob_Phi"],
+               "Case1_obsPhiProbW.loq" = abc_case1_obs_sum[1,"prob_Phi"],
+               "Case1_obsPhiProbW.hiq" = abc_case1_obs_sum[3,"prob_Phi"],
+               "Case1_obsNonPhiW.med" = abc_case1_obs_sum[2,"non_Phi"],
+               "Case1_obsNonPhiW.loq" = abc_case1_obs_sum[1,"non_Phi"],
+               "Case1_obsNonPhiW.hiq" = abc_case1_obs_sum[3,"non_Phi"],
+               "Case1_corSC.med" = NA,
+               "Case1_corSC.loq" = NA,
+               "Case1_corSC.hiq" = NA,
+               # case 2 summary stats 
+               "Case2_obsW.med" = abc_case2_obs_sum[2,"mean_W"],
+               "Case2_obsW.loq" = abc_case2_obs_sum[1, "mean_W"],
+               "Case2_obsW.hiq" = abc_case2_obs_sum[3, "mean_W"],
+               "Case2_obsalphaW.med" = abc_case2_obs_sum[2,"disp_W"],
+               "Case2_obsalphaW.loq" = abc_case2_obs_sum[1,"disp_W"],
+               "Case2_obsalphaW.hiq" = abc_case2_obs_sum[3,"disp_W"],
+               "Case2_obsPhiProbW.med" = abc_case2_obs_sum[2,"prob_Phi"],
+               "Case2_obsPhiProbW.loq" = abc_case2_obs_sum[1,"prob_Phi"],
+               "Case2_obsPhiProbW.hiq" = abc_case2_obs_sum[3,"prob_Phi"],
+               "Case2_obsNonPhiW.med" = abc_case2_obs_sum[2,"non_Phi"],
+               "Case2_obsNonPhiW.loq" = abc_case2_obs_sum[1,"non_Phi"],
+               "Case2_obsNonPhiW.hiq" = abc_case2_obs_sum[3,"non_Phi"],
+               "Case2_corSC.med" = NA,
+               "Case2_corSC.loq" = NA,
+               "Case2_corSC.hiq" = NA,
+               # case 3 summary stats 
+               "Case3_obsW.med" = abc_case3_obs_sum[2,"mean_W"],
+               "Case3_obsW.loq" = abc_case3_obs_sum[1, "mean_W"],
+               "Case3_obsW.hiq" = abc_case3_obs_sum[3, "mean_W"],
+               "Case3_obsalphaW.med" = abc_case3_obs_sum[2,"disp_W"],
+               "Case3_obsalphaW.loq" = abc_case3_obs_sum[1,"disp_W"],
+               "Case3_obsalphaW.hiq" = abc_case3_obs_sum[3,"disp_W"],
+               "Case3_obsPhiProbW.med" = abc_case3_obs_sum[2,"prob_Phi"],
+               "Case3_obsPhiProbW.loq" = abc_case3_obs_sum[1,"prob_Phi"],
+               "Case3_obsPhiProbW.hiq" = abc_case3_obs_sum[3,"prob_Phi"],
+               "Case3_obsNonPhiW.med" = abc_case3_obs_sum[2,"non_Phi"],
+               "Case3_obsNonPhiW.loq" = abc_case3_obs_sum[1,"non_Phi"],
+               "Case3_obsNonPhiW.hiq" = abc_case3_obs_sum[3,"non_Phi"],
+               "Case3_corSC.med" = abc_case3_obs_sum[2,"cor_SC"],
+               "Case3_corSC.loq" = abc_case3_obs_sum[1,"cor_SC"],
+               "Case3_corSC.hiq" = abc_case3_obs_sum[3,"cor_SC"])
+  },
+error = function(cond){
+  data.frame("Shehia" = shehia,
+             "Year" = year,
+             "Pop" = pop,
+             # case 1 summary stats 
+             "Case1_obsW.med" = NA,
+             "Case1_obsW.loq" = NA,
+             "Case1_obsW.hiq" = NA,
+             "Case1_obsalphaW.med" = NA,
+             "Case1_obsalphaW.loq" = NA,
+             "Case1_obsalphaW.hiq" = NA,
+             "Case1_obsPhiProbW.med" = NA,
+             "Case1_obsPhiProbW.loq" = NA,
+             "Case1_obsPhiProbW.hiq" = NA,
+             "Case1_obsNonPhiW.med" = NA,
+             "Case1_obsNonPhiW.loq" = NA,
+             "Case1_obsNonPhiW.hiq" = NA,
+             "Case1_corSC.med" = NA,
+             "Case1_corSC.loq" = NA,
+             "Case1_corSC.hiq" = NA,
+             # case 2 summary stats 
+             "Case2_obsW.med" = NA,
+             "Case2_obsW.loq" = NA,
+             "Case2_obsW.hiq" = NA,
+             "Case2_obsalphaW.med" = NA,
+             "Case2_obsalphaW.loq" = NA,
+             "Case2_obsalphaW.hiq" = NA,
+             "Case2_obsPhiProbW.med" = NA,
+             "Case2_obsPhiProbW.loq" = NA,
+             "Case2_obsPhiProbW.hiq" = NA,
+             "Case2_obsNonPhiW.med" = NA,
+             "Case2_obsNonPhiW.loq" = NA,
+             "Case2_obsNonPhiW.hiq" = NA,
+             "Case2_corSC.med" = NA,
+             "Case2_corSC.loq" = NA,
+             "Case2_corSC.hiq" = NA,
+             # case 3 summary stats 
+             "Case3_obsW.med" = NA,
+             "Case3_obsW.loq" = NA,
+             "Case3_obsW.hiq" = NA,
+             "Case3_obsalphaW.med" = NA,
+             "Case3_obsalphaW.loq" = NA,
+             "Case3_obsalphaW.hiq" = NA,
+             "Case3_obsPhiProbW.med" = NA,
+             "Case3_obsPhiProbW.loq" = NA,
+             "Case3_obsPhiProbW.hiq" = NA,
+             "Case3_obsNonPhiW.med" = NA,
+             "Case3_obsNonPhiW.loq" = NA,
+             "Case3_obsNonPhiW.hiq" = NA,
+             "Case3_corSC.med" = NA,
+             "Case3_corSC.loq" = NA,
+             "Case3_corSC.hiq" = NA)
+
+})    
+  
+  }
+  
+  return(df.out)
+}))
+
+# Get model comparison summaries
+abc_fit_stats_hfix <- do.call(rbind, lapply(abc_sims_hfix, function(abc_run){
+  shehia <- as.character(abc_run[[1]])
+  year <- as.integer(abc_run[[2]])
+  pop <- as.character(abc_run[[3]])
+
+  if(length(abc_run) == 4){
+    out.df <- data.frame("Shehia" = shehia,
+                         "Year" = year,
+                         "Pop" = pop,
+                         "Case1_Post.Prob" = NA,
+                         "Case2_Post.Prob" = NA,
+                         "Case3_Post.Prob" = NA,
+                         "IIItoI_BayesF" = NA,
+                         "IIItoII_BayesF" = NA,
+                         "IItoI_BayesF" = NA)
+  } else {
+    
+    abc_fit_sum <- quiet(abc:::summary.postpr(abc_run[[7]]))
+    
+    if(is.null(abc_fit_sum$mnlogistic)){
+      
+      out.df <- data.frame("Shehia" = shehia,
+                           "Year" = year,
+                           "Pop" = pop,
+                           "Case1_Post.Prob" = NA,
+                           "Case2_Post.Prob" = NA,
+                           "Case3_Post.Prob" = NA,
+                           "IIItoI_BayesF" = NA,
+                           "IIItoII_BayesF" = NA,
+                           "IItoI_BayesF" = NA)
+      
+    } else {
+      
+    out.df <- data.frame("Shehia" = shehia,
+                         "Year" = year,
+                         "Pop" = pop,
+                         "Case1_Post.Prob" = abc_fit_sum$mnlogistic$Prob[1],
+                         "Case2_Post.Prob" = abc_fit_sum$mnlogistic$Prob[2],
+                         "Case3_Post.Prob" = abc_fit_sum$mnlogistic$Prob[3],
+                         "IIItoI_BayesF" = abc_fit_sum$mnlogistic$BayesF[3,1],
+                         "IIItoII_BayesF" = abc_fit_sum$mnlogistic$BayesF[3,2],
+                         "IItoI_BayesF" = abc_fit_sum$mnlogistic$BayesF[2,1])
+      
+    }
+    
+  }
+  
+  return(out.df)
+
+}))
+
+abc_fin_df_hfix <- left_join(yO, abc_posterior_sums_hfix, by = c("Shehia", "Year", "Pop")) %>% 
+  left_join(abc_gendata_sums_hfix,by = c("Shehia", "Year", "Pop")) %>% 
+  left_join(abc_fit_stats_hfix, by = c("Shehia", "Year", "Pop"))
+  
+rm(abc_sims_hfix) ; gc()
+```
+
+```{r abc_fit_pivot_hfix}
+#abc_fin_df <- readRDS(here::here("Data/abc_fit_1e6iterations_processed.rds"))
+
+abc_fin_df_long_hfix <- abc_fin_df_hfix %>% 
+  pivot_longer(cols = Case1_W.med:IItoI_BayesF,
+               names_to = c("Case", "Measure"),
+               names_sep = "_")
+
+abc_fin_df_case_long_hfix <- abc_fin_df_long_hfix %>% 
+  pivot_wider(names_from = "Measure", 
+              values_from = "value",
+              values_fn = {first})
+```
+
+```{r obskW_plot_hfix}
+# Plot dispersion by mean worm burden   
+abc_kap_W_chld_plot_hfix <- abc_fin_df_case_long_hfix %>%
+  filter(Case %in% c("Case1", "Case2", "Case3") & Pop == "Child") %>% 
+  ggplot(aes(x = obsW.med,
+             y = obsalphaW.med^-1, 
+             ymin = obsalphaW.loq^-1, ymax = obsalphaW.hiq^-1,
+             #shape = Intervention,
+             size = obsalphaW.med/(alphaW.hiq-alphaW.loq),
+             col = Case)) +
+    geom_point(alpha = 0.6) +
+    theme_classic() +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100")) +
+    scale_y_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100")) +
+    scale_color_manual(values = c("#058dd6", "#cc4a49", "#7b6c7c")) +
+    stat_smooth() +
+    labs(y = expression(Worm~Dispersion~Parameter~(kappa[st]^W)),
+         x = expression(Mean~community~worm~burden~(W[st])))
+
+ggsave(here("Plots", "abc_obskapW_obsW_child_hfix.png"),
+       height = 5, width = 8)
+```
+
+```{r abc_results_process_n1e5, include = FALSE, message = FALSE, cache = T, cache.lazy=F}
+abc_sims <- readRDS(here::here("Data", "abc_fit_ridge_log_1e5iterations2020-10-01.rds"))
+
+# Get posterior summaries
+abc_posterior_sums <- bind_rows(lapply(abc_sims, function(abc_run){
+  shehia <- as.character(abc_run[[1]])
+  year <- as.integer(abc_run[[2]])
+  pop <- as.character(abc_run[[3]])
+  
+  if(length(abc_run) == 4){
+    
+  df.out <- data.frame("Shehia" = shehia,
+                       "Year" = year,
+                       "Pop" = pop,
+                      # case 1 summary stats 
+                       "Case1_W.med" = NA,
+                       "Case1_W.loq" = NA,
+                       "Case1_W.hiq" = NA,
+                       "Case1_alphaW.med" = NA,
+                       "Case1_alphaW.loq" = NA,
+                       "Case1_alphaW.hiq" = NA,
+                       "Case1_h.med" = NA,
+                       "Case1_h.loq" = NA,
+                       "Case1_h.hiq" = NA,
+                       # case 2 summary stats 
+                       "Case2_W.med" = NA,
+                       "Case2_W.loq" = NA,
+                       "Case2_W.hiq" = NA,
+                       "Case2_alphaW.med" = NA,
+                       "Case2_alphaW.loq" = NA,
+                       "Case2_alphaW.hiq" = NA,
+                       "Case2_h.med" = NA,
+                       "Case2_h.loq" = NA,
+                       "Case2_h.hiq" = NA,
+                      # case 3 summary stats 
+                       "Case3_W.med" = NA,
+                       "Case3_W.loq" = NA,
+                       "Case3_W.hiq" = NA,
+                       "Case3_alphaW.med" = NA,
+                       "Case3_alphaW.loq" = NA,
+                       "Case3_alphaW.hiq" = NA,
+                       "Case3_h.med" = NA,
+                       "Case3_h.loq" = NA,
+                       "Case3_h.hiq" = NA)
+  } else {
+  
+  df.out <- tryCatch({
+    # Process case 1 runs  
+  abc_case1_sum <- get_abc_med_iqr(abc_run[[4]]$adj.values, abc_run[[4]]$weights)
+
+# Process case 2 runs  
+  abc_case2_sum <- get_abc_med_iqr(abc_run[[5]]$adj.values, abc_run[[5]]$weights)
+  
+# Process case 3 runs  
+  abc_case3_pars <- abc_run[[6]]$adj.values
+    abc_case3_pars <- cbind(abc_case3_pars, 
+                            est_case3_meanW(alphaS = 1, betaS = 1/500, meanC = abc_case3_pars[,"mean_C"]),
+                            est_case3_varW(alphaS = 1, betaS = 1/500, meanC = abc_case3_pars[,"mean_C"], alphaC = abc_case3_pars[,"disp_C"]))
+      colnames(abc_case3_pars)[4:5] <- c("mean_W", "var_W")
+  
+    abc_case3_pars <- cbind(abc_case3_pars, 
+                            est_dispW(abc_case3_pars[,"mean_W"], abc_case3_pars[,"var_W"]))
+  
+      colnames(abc_case3_pars)[6] <- "disp_W"
+      
+  abc_case3_sum <- get_abc_med_iqr(abc_case3_pars, abc_run[[6]]$weights)
+  
+  data.frame("Shehia" = shehia,
+             "Year" = year,
+             "Pop" = pop,
+             # case 1 summary stats 
+             "Case1_W.med" = abc_case1_sum[2,"mean_W"],
+             "Case1_W.loq" = abc_case1_sum[1, "mean_W"],
+             "Case1_W.hiq" = abc_case1_sum[3, "mean_W"],
+             "Case1_alphaW.med" = abc_case1_sum[2,"disp_W"],
+             "Case1_alphaW.loq" = abc_case1_sum[1,"disp_W"],
+             "Case1_alphaW.hiq" = abc_case1_sum[3,"disp_W"],
+             "Case1_h.med" = abc_case1_sum[2,"h"],
+             "Case1_h.loq" = abc_case1_sum[1,"h"],
+             "Case1_h.hiq" = abc_case1_sum[3,"h"],
+             # case 2 summary stats 
+             "Case2_W.med" = abc_case2_sum[2,"mean_W"],
+             "Case2_W.loq" = abc_case2_sum[1, "mean_W"],
+             "Case2_W.hiq" = abc_case2_sum[3, "mean_W"],
+             "Case2_alphaW.med" = abc_case2_sum[2,"disp_W"],
+             "Case2_alphaW.loq" = abc_case2_sum[1,"disp_W"],
+             "Case2_alphaW.hiq" = abc_case2_sum[3,"disp_W"],
+             "Case2_h.med" = abc_case2_sum[2,"h"],
+             "Case2_h.loq" = abc_case2_sum[1,"h"],
+             "Case2_h.hiq" = abc_case2_sum[3,"h"],
+             # case 3 summary stats 
+             "Case3_W.med" = abc_case3_sum[2,"mean_W"],
+             "Case3_W.loq" = abc_case3_sum[1, "mean_W"],
+             "Case3_W.hiq" = abc_case3_sum[3, "mean_W"],
+             "Case3_alphaW.med" = abc_case3_sum[2,"disp_W"],
+             "Case3_alphaW.loq" = abc_case3_sum[1,"disp_W"],
+             "Case3_alphaW.hiq" = abc_case3_sum[3,"disp_W"],
+             "Case3_h.med" = abc_case3_sum[2,"h"],
+             "Case3_h.loq" = abc_case3_sum[1,"h"],
+             "Case3_h.hiq" = abc_case3_sum[3,"h"])
+
+  },
+error = function(cond){
+  data.frame("Shehia" = shehia,
+             "Year" = year,
+             "Pop" = pop,
+             # case 1 summary stats 
+             "Case1_W.med" = NA,
+             "Case1_W.loq" = NA,
+             "Case1_W.hiq" = NA,
+             "Case1_alphaW.med" = NA,
+             "Case1_alphaW.loq" = NA,
+             "Case1_alphaW.hiq" = NA,
+             "Case1_h.med" = NA,
+             "Case1_h.loq" = NA,
+             "Case1_h.hiq" = NA,
+             # case 2 summary stats 
+             "Case2_W.med" = NA,
+             "Case2_W.loq" = NA,
+             "Case2_W.hiq" = NA,
+             "Case2_alphaW.med" = NA,
+             "Case2_alphaW.loq" = NA,
+             "Case2_alphaW.hiq" = NA,
+             "Case2_h.med" = NA,
+             "Case2_h.loq" = NA,
+             "Case2_h.hiq" = NA,
+             # case 3 summary stats 
+             "Case3_W.med" = NA,
+             "Case3_W.loq" = NA,
+             "Case3_W.hiq" = NA,
+             "Case3_alphaW.med" = NA,
+             "Case3_alphaW.loq" = NA,
+             "Case3_alphaW.hiq" = NA,
+             "Case3_h.med" = NA,
+             "Case3_h.loq" = NA,
+             "Case3_h.hiq" = NA)
+  
+})    
+
+  }
+  
+  return(df.out)
+  
+}))
+
+# Get summaries from actual generated data, weighted by posterior fits
+abc_gendata_sums <- do.call(rbind, lapply(abc_sims, function(abc_run){
+  shehia <- as.character(abc_run[[1]])
+  year <- as.integer(abc_run[[2]])
+  pop <- as.character(abc_run[[3]])
+  
+  if(length(abc_run) == 4){
+    df.out <- data.frame("Shehia" = shehia,
+                         "Year" = year,
+                         "Pop" = pop,
+                         # case 1 summary stats 
+                         "Case1_obsW.med" = NA,
+                         "Case1_obsW.loq" = NA,
+                         "Case1_obsW.hiq" = NA,
+                         "Case1_obsalphaW.med" = NA,
+                         "Case1_obsalphaW.loq" = NA,
+                         "Case1_obsalphaW.hiq" = NA,
+                         "Case1_obsPhiProbW.med" = NA,
+                         "Case1_obsPhiProbW.loq" = NA,
+                         "Case1_obsPhiProbW.hiq" = NA,
+                         "Case1_obsNonPhiW.med" = NA,
+                         "Case1_obsNonPhiW.loq" = NA,
+                         "Case1_obsNonPhiW.hiq" = NA,
+                         "Case1_corSC.med" = NA,
+                         "Case1_corSC.loq" = NA,
+                         "Case1_corSC.hiq" = NA,
+                         # case 2 summary stats 
+                         "Case2_obsW.med" = NA,
+                         "Case2_obsW.loq" = NA,
+                         "Case2_obsW.hiq" = NA,
+                         "Case2_obsalphaW.med" = NA,
+                         "Case2_obsalphaW.loq" = NA,
+                         "Case2_obsalphaW.hiq" = NA,
+                         "Case2_obsPhiProbW.med" = NA,
+                         "Case2_obsPhiProbW.loq" = NA,
+                         "Case2_obsPhiProbW.hiq" = NA,
+                         "Case2_obsNonPhiW.med" = NA,
+                         "Case2_obsNonPhiW.loq" = NA,
+                         "Case2_obsNonPhiW.hiq" = NA,
+                         "Case2_corSC.med" = NA,
+                         "Case2_corSC.loq" = NA,
+                         "Case2_corSC.hiq" = NA,
+                         # case 3 summary stats 
+                         "Case3_obsW.med" = NA,
+                         "Case3_obsW.loq" = NA,
+                         "Case3_obsW.hiq" = NA,
+                         "Case3_obsalphaW.med" = NA,
+                         "Case3_obsalphaW.loq" = NA,
+                         "Case3_obsalphaW.hiq" = NA,
+                         "Case3_obsPhiProbW.med" = NA,
+                         "Case3_obsPhiProbW.loq" = NA,
+                         "Case3_obsPhiProbW.hiq" = NA,
+                         "Case3_obsNonPhiW.med" = NA,
+                         "Case3_obsNonPhiW.loq" = NA,
+                         "Case3_obsNonPhiW.hiq" = NA,
+                         "Case3_corSC.med" = NA,
+                         "Case3_corSC.loq" = NA,
+                         "Case3_corSC.hiq" = NA)
+  } else {
+
+  df.out <- tryCatch({
+# Process case 1 runs  
+  abc_case1_obs <- abc_run[[8]]
+    abc_case1_obs <- cbind(abc_case1_obs, 
+                           est_dispW(abc_case1_obs[,"mean_W"], abc_case1_obs[,"var_W"]))
+    colnames(abc_case1_obs)[ncol(abc_case1_obs)] <- "disp_W"
+    
+  abc_case1_obs_sum <- get_abc_med_iqr(abc_case1_obs, abc_run[[4]]$weights)
+  
+#Process case 2 runs    
+  abc_case2_obs <- abc_run[[9]]
+    abc_case2_obs <- cbind(abc_case2_obs, 
+                           est_dispW(abc_case2_obs[,"mean_W"], abc_case2_obs[,"var_W"]))
+    colnames(abc_case2_obs)[ncol(abc_case2_obs)] <- "disp_W"
+  
+  abc_case2_obs_sum <- get_abc_med_iqr(abc_case2_obs, abc_run[[5]]$weights)
+
+#Process case 3 runs (requires more since exposure and susceptibility are separate)
+  abc_case3_obs <- abc_run[[10]]
+    abc_case3_obs <- cbind(abc_case3_obs, 
+                           est_dispW(abc_case3_obs[,"mean_W"], abc_case3_obs[,"var_W"]))
+    colnames(abc_case3_obs)[ncol(abc_case3_obs)] <- "disp_W"
+
+    abc_case3_obs <- cbind(abc_case3_obs, 
+                           abc_run[[11]][,"cor_SC"])
+    colnames(abc_case3_obs)[ncol(abc_case3_obs)] <- "cor_SC"
+          
+  abc_case3_obs_sum <- get_abc_med_iqr(abc_case3_obs, abc_run[[6]]$weights)
+
+    data.frame("Shehia" = shehia,
+               "Year" = year,
+               "Pop" = pop,
+               # case 1 summary stats 
+               "Case1_obsW.med" = abc_case1_obs_sum[2,"mean_W"],
+               "Case1_obsW.loq" = abc_case1_obs_sum[1, "mean_W"],
+               "Case1_obsW.hiq" = abc_case1_obs_sum[3, "mean_W"],
+               "Case1_obsalphaW.med" = abc_case1_obs_sum[2,"disp_W"],
+               "Case1_obsalphaW.loq" = abc_case1_obs_sum[1,"disp_W"],
+               "Case1_obsalphaW.hiq" = abc_case1_obs_sum[3,"disp_W"],
+               "Case1_obsPhiProbW.med" = abc_case1_obs_sum[2,"prob_Phi"],
+               "Case1_obsPhiProbW.loq" = abc_case1_obs_sum[1,"prob_Phi"],
+               "Case1_obsPhiProbW.hiq" = abc_case1_obs_sum[3,"prob_Phi"],
+               "Case1_obsNonPhiW.med" = abc_case1_obs_sum[2,"non_Phi"],
+               "Case1_obsNonPhiW.loq" = abc_case1_obs_sum[1,"non_Phi"],
+               "Case1_obsNonPhiW.hiq" = abc_case1_obs_sum[3,"non_Phi"],
+               "Case1_corSC.med" = NA,
+               "Case1_corSC.loq" = NA,
+               "Case1_corSC.hiq" = NA,
+               # case 2 summary stats 
+               "Case2_obsW.med" = abc_case2_obs_sum[2,"mean_W"],
+               "Case2_obsW.loq" = abc_case2_obs_sum[1, "mean_W"],
+               "Case2_obsW.hiq" = abc_case2_obs_sum[3, "mean_W"],
+               "Case2_obsalphaW.med" = abc_case2_obs_sum[2,"disp_W"],
+               "Case2_obsalphaW.loq" = abc_case2_obs_sum[1,"disp_W"],
+               "Case2_obsalphaW.hiq" = abc_case2_obs_sum[3,"disp_W"],
+               "Case2_obsPhiProbW.med" = abc_case2_obs_sum[2,"prob_Phi"],
+               "Case2_obsPhiProbW.loq" = abc_case2_obs_sum[1,"prob_Phi"],
+               "Case2_obsPhiProbW.hiq" = abc_case2_obs_sum[3,"prob_Phi"],
+               "Case2_obsNonPhiW.med" = abc_case2_obs_sum[2,"non_Phi"],
+               "Case2_obsNonPhiW.loq" = abc_case2_obs_sum[1,"non_Phi"],
+               "Case2_obsNonPhiW.hiq" = abc_case2_obs_sum[3,"non_Phi"],
+               "Case2_corSC.med" = NA,
+               "Case2_corSC.loq" = NA,
+               "Case2_corSC.hiq" = NA,
+               # case 3 summary stats 
+               "Case3_obsW.med" = abc_case3_obs_sum[2,"mean_W"],
+               "Case3_obsW.loq" = abc_case3_obs_sum[1, "mean_W"],
+               "Case3_obsW.hiq" = abc_case3_obs_sum[3, "mean_W"],
+               "Case3_obsalphaW.med" = abc_case3_obs_sum[2,"disp_W"],
+               "Case3_obsalphaW.loq" = abc_case3_obs_sum[1,"disp_W"],
+               "Case3_obsalphaW.hiq" = abc_case3_obs_sum[3,"disp_W"],
+               "Case3_obsPhiProbW.med" = abc_case3_obs_sum[2,"prob_Phi"],
+               "Case3_obsPhiProbW.loq" = abc_case3_obs_sum[1,"prob_Phi"],
+               "Case3_obsPhiProbW.hiq" = abc_case3_obs_sum[3,"prob_Phi"],
+               "Case3_obsNonPhiW.med" = abc_case3_obs_sum[2,"non_Phi"],
+               "Case3_obsNonPhiW.loq" = abc_case3_obs_sum[1,"non_Phi"],
+               "Case3_obsNonPhiW.hiq" = abc_case3_obs_sum[3,"non_Phi"],
+               "Case3_corSC.med" = abc_case3_obs_sum[2,"cor_SC"],
+               "Case3_corSC.loq" = abc_case3_obs_sum[1,"cor_SC"],
+               "Case3_corSC.hiq" = abc_case3_obs_sum[3,"cor_SC"])
+  },
+error = function(cond){
+  data.frame("Shehia" = shehia,
+             "Year" = year,
+             "Pop" = pop,
+             # case 1 summary stats 
+             "Case1_obsW.med" = NA,
+             "Case1_obsW.loq" = NA,
+             "Case1_obsW.hiq" = NA,
+             "Case1_obsalphaW.med" = NA,
+             "Case1_obsalphaW.loq" = NA,
+             "Case1_obsalphaW.hiq" = NA,
+             "Case1_obsPhiProbW.med" = NA,
+             "Case1_obsPhiProbW.loq" = NA,
+             "Case1_obsPhiProbW.hiq" = NA,
+             "Case1_obsNonPhiW.med" = NA,
+             "Case1_obsNonPhiW.loq" = NA,
+             "Case1_obsNonPhiW.hiq" = NA,
+             "Case1_corSC.med" = NA,
+             "Case1_corSC.loq" = NA,
+             "Case1_corSC.hiq" = NA,
+             # case 2 summary stats 
+             "Case2_obsW.med" = NA,
+             "Case2_obsW.loq" = NA,
+             "Case2_obsW.hiq" = NA,
+             "Case2_obsalphaW.med" = NA,
+             "Case2_obsalphaW.loq" = NA,
+             "Case2_obsalphaW.hiq" = NA,
+             "Case2_obsPhiProbW.med" = NA,
+             "Case2_obsPhiProbW.loq" = NA,
+             "Case2_obsPhiProbW.hiq" = NA,
+             "Case2_obsNonPhiW.med" = NA,
+             "Case2_obsNonPhiW.loq" = NA,
+             "Case2_obsNonPhiW.hiq" = NA,
+             "Case2_corSC.med" = NA,
+             "Case2_corSC.loq" = NA,
+             "Case2_corSC.hiq" = NA,
+             # case 3 summary stats 
+             "Case3_obsW.med" = NA,
+             "Case3_obsW.loq" = NA,
+             "Case3_obsW.hiq" = NA,
+             "Case3_obsalphaW.med" = NA,
+             "Case3_obsalphaW.loq" = NA,
+             "Case3_obsalphaW.hiq" = NA,
+             "Case3_obsPhiProbW.med" = NA,
+             "Case3_obsPhiProbW.loq" = NA,
+             "Case3_obsPhiProbW.hiq" = NA,
+             "Case3_obsNonPhiW.med" = NA,
+             "Case3_obsNonPhiW.loq" = NA,
+             "Case3_obsNonPhiW.hiq" = NA,
+             "Case3_corSC.med" = NA,
+             "Case3_corSC.loq" = NA,
+             "Case3_corSC.hiq" = NA)
+
+})    
+  
+  }
+  
+  return(df.out)
+}))
+
+# Get model comparison summaries
+abc_fit_stats <- do.call(rbind, lapply(abc_sims, function(abc_run){
+  shehia <- as.character(abc_run[[1]])
+  year <- as.integer(abc_run[[2]])
+  pop <- as.character(abc_run[[3]])
+
+  if(length(abc_run) == 4){
+    out.df <- data.frame("Shehia" = shehia,
+                         "Year" = year,
+                         "Pop" = pop,
+                         "Case1_Post.Prob" = NA,
+                         "Case2_Post.Prob" = NA,
+                         "Case3_Post.Prob" = NA,
+                         "IIItoI_BayesF" = NA,
+                         "IIItoII_BayesF" = NA,
+                         "IItoI_BayesF" = NA)
+  } else {
+    
+    abc_fit_sum <- quiet(abc:::summary.postpr(abc_run[[7]]))
+    
+    if(is.null(abc_fit_sum$mnlogistic)){
+      
+      out.df <- data.frame("Shehia" = shehia,
+                           "Year" = year,
+                           "Pop" = pop,
+                           "Case1_Post.Prob" = NA,
+                           "Case2_Post.Prob" = NA,
+                           "Case3_Post.Prob" = NA,
+                           "IIItoI_BayesF" = NA,
+                           "IIItoII_BayesF" = NA,
+                           "IItoI_BayesF" = NA)
+      
+    } else {
+      
+    out.df <- data.frame("Shehia" = shehia,
+                         "Year" = year,
+                         "Pop" = pop,
+                         "Case1_Post.Prob" = abc_fit_sum$mnlogistic$Prob[1],
+                         "Case2_Post.Prob" = abc_fit_sum$mnlogistic$Prob[2],
+                         "Case3_Post.Prob" = abc_fit_sum$mnlogistic$Prob[3],
+                         "IIItoI_BayesF" = abc_fit_sum$mnlogistic$BayesF[3,1],
+                         "IIItoII_BayesF" = abc_fit_sum$mnlogistic$BayesF[3,2],
+                         "IItoI_BayesF" = abc_fit_sum$mnlogistic$BayesF[2,1])
+      
+    }
+    
+  }
+  
+  return(out.df)
+
+}))
+
+# Get generated datasets to compare to observed for model assessment
+abc_sumstats <- do.call(rbind, lapply(abc_sims, function(abc_run){
+  shehia <- as.character(abc_run[[1]])
+  year <- as.integer(abc_run[[2]])
+  pop <- abc_run[[3]]
+  
+  if(length(abc_run) == 4){
+  out.df <- data.frame("Shehia" = shehia,
+                       "Year" = year,
+                       "Pop" = pop,
+                      # case 1 summary stats 
+                       "Case1_genE.med" = NA,
+                       "Case1_genE.loq" = NA,
+                       "Case1_genE.hiq" = NA,
+                       "Case1_genEse.med" = NA,
+                       "Case1_genEse.loq" = NA,
+                       "Case1_genEse.hiq" = NA,
+                       "Case1_genEpos2n.med" = NA,
+                       "Case1_genEpos2n.loq" = NA,
+                       "Case1_genEpos2n.hiq" = NA,
+                      
+                      # case 2 summary stats 
+                       "Case2_genE.med" = NA,
+                       "Case2_genE.loq" = NA,
+                       "Case2_genE.hiq" = NA,
+                       "Case2_genEse.med" = NA,
+                       "Case2_genEse.loq" = NA,
+                       "Case2_genEse.hiq" = NA,
+                       "Case2_genEpos2n.med" = NA,
+                       "Case2_genEpos2n.loq" = NA,
+                       "Case2_genEpos2n.hiq" = NA,
+
+                      # case 3 summary stats 
+                       "Case3_genE.med" = NA,
+                       "Case3_genE.loq" = NA,
+                       "Case3_genE.hiq" = NA,
+                       "Case3_genEse.med" = NA,
+                       "Case3_genEse.loq" = NA,
+                       "Case3_genEse.hiq" = NA,
+                       "Case3_genEpos2n.med" = NA,
+                       "Case3_genEpos2n.loq" = NA,
+                       "Case3_genEpos2n.hiq" = NA)
+  } else {
+    
+  abc_case1_ss <- abc_run[[4]]$ss 
+
+  abc_case2_ss <- abc_run[[5]]$ss 
+
+  abc_case3_ss <- abc_run[[6]]$ss 
+
+  
+  out.df <- data.frame("Shehia" = shehia,
+                       "Year" = year,
+                       "Pop" = pop,
+                      # case 1 summary stats 
+                       "Case1_genE.med" = quantile(abc_case1_ss[,1], 0.5),
+                       "Case1_genE.loq" = quantile(abc_case1_ss[,1], 0.25),
+                       "Case1_genE.hiq" = quantile(abc_case1_ss[,1], 0.75),
+                       "Case1_genEse.med" = quantile(abc_case1_ss[,2], 0.5),
+                       "Case1_genEse.loq" = quantile(abc_case1_ss[,2], 0.25),
+                       "Case1_genEse.hiq" = quantile(abc_case1_ss[,2], 0.75),
+                       "Case1_genEpos2n.med" = quantile(abc_case1_ss[,3], 0.5),
+                       "Case1_genEpos2n.loq" = quantile(abc_case1_ss[,3], 0.25),
+                       "Case1_genEpos2n.hiq" = quantile(abc_case1_ss[,3], 0.75),
+                      
+                      # case 2 summary stats 
+                       "Case2_genE.med" = quantile(abc_case2_ss[,1], 0.5),
+                       "Case2_genE.loq" = quantile(abc_case2_ss[,1], 0.25),
+                       "Case2_genE.hiq" = quantile(abc_case2_ss[,1], 0.75),
+                       "Case2_genEse.med" = quantile(abc_case2_ss[,2], 0.5),
+                       "Case2_genEse.loq" = quantile(abc_case2_ss[,2], 0.25),
+                       "Case2_genEse.hiq" = quantile(abc_case2_ss[,2], 0.75),
+                       "Case2_genEpos2n.med" = quantile(abc_case2_ss[,3], 0.5),
+                       "Case2_genEpos2n.loq" = quantile(abc_case2_ss[,3], 0.25),
+                       "Case2_genEpos2n.hiq" = quantile(abc_case2_ss[,3], 0.75),
+
+                      # case 3 summary stats 
+                       "Case3_genE.med" = quantile(abc_case3_ss[,1], 0.5),
+                       "Case3_genE.loq" = quantile(abc_case3_ss[,1], 0.25),
+                       "Case3_genE.hiq" = quantile(abc_case3_ss[,1], 0.75),
+                       "Case3_genEse.med" = quantile(abc_case3_ss[,2], 0.5),
+                       "Case3_genEse.loq" = quantile(abc_case3_ss[,2], 0.25),
+                       "Case3_genEse.hiq" = quantile(abc_case3_ss[,2], 0.75),
+                       "Case3_genEpos2n.med" = quantile(abc_case3_ss[,3], 0.5),
+                       "Case3_genEpos2n.loq" = quantile(abc_case3_ss[,3], 0.25),
+                       "Case3_genEpos2n.hiq" = quantile(abc_case3_ss[,3], 0.75))
+    
+  }
+  
+  return(out.df)
+}))
+
+
+abc_fin_df <- cbind(yO, abc_posterior_sums[,-c(1:3)], abc_gendata_sums[,-c(1:3)], abc_fit_stats [,-c(1:3)], abc_sumstats[,-c(1:3)])
+  
+```
+
+```{r abc_fit_pivot}
+#abc_fin_df <- readRDS(here::here("Data/abc_fit_1e6iterations_processed.rds"))
+
+abc_fin_df2 <- abc_fin_df %>% 
+  # Determine for Case 3 if closer to Case 1 or Case2 estimates
+  mutate(Case3_diff1 = (Case1_W.med-Case3_W.med)^2,
+         Case3_diff2 = (Case2_W.med-Case3_W.med)^2,
+         Case3_closer = if_else(Case3_diff1 > Case3_diff2, 2, 1))
+
+abc_fin_df_long <- abc_fin_df2 %>% 
+  pivot_longer(cols = Case1_W.med:Case3_closer,
+               names_to = c("Case", "Measure"),
+               names_sep = "_")
+
+abc_fin_df_case_long <- abc_fin_df_long %>% 
+  pivot_wider(names_from = "Measure", 
+              values_from = "value",
+              values_fn = {first})
+
+rm(abc_sims) ; quiet(gc())
+```
+
+
+
+
+
+```{r abc_fit_plot_obs_kbyW, include = FALSE}
+# Plot dispersion by worm burden   
+kap_W_plot <- abc_fin_df_case_long %>%
+  filter(Case %in% c("Case1", "Case2", "Case3") & Pop == "Child") %>% 
+  ggplot(aes(x = obsW.med,
+             y = obsalphaW.med^-1, 
+             #shape = Intervention,
+             col = Case,
+             weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +
+    stat_smooth() +
+    geom_point(aes(size = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq)),
+               alpha = 0.5,
+               show.legend = FALSE) +
+    #facet_grid(Intervention~Isl) +
+    theme_classic() +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100")) +
+    scale_y_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100")) +
+    scale_color_manual(values = c("#058dd6", "#cc4a49", "#7b6c7c")) +
+    labs(y = expression(Worm~Dispersion~Parameter~(kappa[st]^W)),
+         x = expression(Mean~community~worm~burden~(W[st])))
+
+#kap_W_plot
+
+#ggsave(here("Plots", "abc_obskapW_obsW_child.png"), height = 5, width = 8)
+
+# Case1 PLot ----------------------
+kap_W_case1_plot <- abc_fin_df_case_long %>%
+  filter(Case=="Case1" & Pop == "Child") %>% 
+  ggplot(aes(x = obsW.med,
+             y = obsalphaW.med^-1, 
+             weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +
+    geom_point(aes(size = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq)),
+               col = "#058dd6",
+               alpha = 0.3,
+               show.legend = FALSE) +
+    stat_smooth(col = "#058dd6") +
+    theme_classic() +
+    theme(axis.title.x = element_blank(),
+          plot.title = element_text(hjust = 0.5)) +
+    scale_size(range = c(1,4)) +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100"),
+                       limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
+                                  max(abc_fin_df_case_long$obsW.med, na.rm = T))) +
+    scale_y_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100"),
+                       limits = c(min(abc_fin_df_case_long$obsalphaW.med^-1, na.rm = T),
+                                  max(abc_fin_df_case_long$obsalphaW.med^-1, na.rm = T))) +
+    labs(y = expression(Worm~Dispersion~Parameter~(kappa[st]^W)),
+         title = "Case 1")
+
+# Case2 PLot ----------------------
+kap_W_case2_plot <- abc_fin_df_case_long %>%
+  filter(Case=="Case2" & Pop == "Child") %>% 
+  ggplot(aes(x = obsW.med,
+             y = obsalphaW.med^-1, 
+             weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +
+    geom_point(aes(size = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq)),
+               col = "#cc4a49",
+               alpha = 0.3,
+               show.legend = FALSE) +
+    stat_smooth(col = "#cc4a49") +
+    theme_classic() +
+    theme(axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          axis.line.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          plot.title = element_text(hjust = 0.5)) +
+    scale_size(range = c(1,4)) +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100"),
+                       limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
+                                  max(abc_fin_df_case_long$obsW.med, na.rm = T))) +
+    scale_y_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100"),
+                       limits = c(min(abc_fin_df_case_long$obsalphaW.med^-1, na.rm = T),
+                                  max(abc_fin_df_case_long$obsalphaW.med^-1, na.rm = T))) +
+    labs(x = expression(Mean~worm~burden~(W[st])),
+         title = "Case 2")
+
+# Case3 PLot ----------------------
+kap_W_case3_plot <- abc_fin_df_case_long %>%
+  filter(Case=="Case3" & Pop == "Child") %>% 
+  ggplot(aes(x = obsW.med,
+             y = obsalphaW.med^-1, 
+             weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +
+    geom_point(aes(size = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq)),
+               col = "#7b6c7c",
+               alpha = 0.3,
+               show.legend = FALSE) +
+    stat_smooth(col = "#7b6c7c") +
+    theme_classic() +
+    theme(axis.title.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          axis.line.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          plot.title = element_text(hjust = 0.5)) +
+    scale_size(range = c(1,4)) +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100"),
+                       limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
+                                  max(abc_fin_df_case_long$obsW.med, na.rm = T))) +
+    scale_y_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100"),
+                       limits = c(min(abc_fin_df_case_long$obsalphaW.med^-1, na.rm = T),
+                                  max(abc_fin_df_case_long$obsalphaW.med^-1, na.rm = T))) +
+    labs(title = "Case 3")
+
+```
+
+```{r abc_case1_kbyw_gee}
+# Mean worm burden by aggregation for case 1
+  alphaW_gee_case1 <- geeglm(log(obsalphaW.med) ~ log(obsW.med), id = as.factor(Shehia),
+                             family = "gaussian", corstr = "unstructured",
+                             weights = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq),
+                             data = abc_fin_df_case_long %>% filter(Case == "Case1" & Pop == "Child"))
+  
+  geeW_coef1_case1 <- coef(alphaW_gee_case1)[1]
+  geeW_coef2_case1 <- coef(alphaW_gee_case1)[2]
+  
+  zanz_kappa_W_gee_case1 <- function(W){
+    exp(geeW_coef1_case1+geeW_coef2_case1*log(W))^-1
+  }
+  
+save(zanz_kappa_W_gee_case1, file = here("Data", "zanz_case1_kapW_fromW_fx.RData"))  
+  
+abc_case1_kbyw_gee <- abc_fin_df_case_long %>%
+  filter(Case %in% c("Case1") & Pop == "Child") %>% 
+  ggplot(aes(x = obsW.med,
+             y = obsalphaW.med^-1, 
+             col = Case,
+             size = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq),
+             weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +
+    geom_point(alpha = 0.6) +
+    #geom_errorbar(alpha = 0.6) +
+    #facet_grid(Intervention~Isl) +
+    theme_classic() +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100")) +
+    scale_y_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100")) +
+    stat_function(fun = zanz_kappa_W_gee_case1, size = 1.2, col = "#058dd6") +
+    scale_color_manual(values = "#058dd6") +
+    #scale_shape_manual(values = c(17,18,15)) +
+    labs(y = expression(Worm~Dispersion~Parameter~(kappa[st]^W)),
+         x = "Mean community worm burden (W)",
+         size = "Weight")
+  
+abc_case1_kbyw_gee
+
+ggsave(here("Plots", "abc_obskapW_obsW_adlt.png"),
+       height = 5, width = 8)
+
+```
+
+```{r abc_fit_plot_BayesF}
+# Bayes factors (omparative estimate of model performance) for each case across observed egg burden
+abc_bayesF_comp <- abc_fin_df_case_long %>% 
+  filter(Case %in% c("IIItoI", "IIItoII", "IItoI") & Pop == "Child") %>% 
+  ggplot(aes(x = UF_mean, y = BayesF, col = Case)) +
+    stat_smooth() +
+    geom_hline(yintercept = 1) +
+    geom_point(alpha = 0.5) +
+    scale_y_continuous(trans = "log",
+                       breaks = c(0.1, 1, 10, 100, 1000),
+                       labels = c("0.1", "1", "10", "100", "1000"),
+                       limits = c(0.1,1000)) +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100")) +
+    scale_color_manual(values = c("darkblue", "darkred", "forestgreen"),
+                       labels = c("Case 3 to Case 1", "Case 3 to Case 2","Case 2 to Case 1")) +
+    theme_classic() +
+    theme(legend.position = c(0.15,0.8),
+          legend.text = element_text(size = 8),
+          legend.title = element_text(size = 10)) +
+    labs(x = expression(paste("Mean egg burden (\U2130"[st],")")),
+         y = "Bayes Factor",
+         col = "Comparison")
+
+```
+
+```{r Fig2, include = TRUE, warning = FALSE, message = FALSE, fig.height=5.5, fig.width=7, fig.cap="Summary of approximate bayesian computation estimates of community worm distributions among children. Across the top are posterior estimates of the mean community worm burden ($W_{st}$) and worm dispersion parameter ($k^W_{st}$) from ABC estimation for Case 1 (Together, top left in blue), Case 2 (Separate, top middle in red), and Case 3 (Generalizable, top right in purple). The bottom panel shows comparisons of model fit for each case across the measured community egg burden ($E_{st}$) using the Bayes Factor, a ratio of model likelihoods in which higher values imply better fits to the observed data. All axes are log-transformed and smoothed averages are shown for figure clarity. Points in the top panels are sized in proportion to the inverse of the interquartile range of the posterior estimate of $k^W_{st}$."}
+(kap_W_case1_plot | kap_W_case2_plot | kap_W_case3_plot) / abc_bayesF_comp +plot_layout(heights = c(2,3))
+```
+
+Results of ABC estimation of the mean worm burden, aggregation parameter and mating probability are shown for children. The same figures for estimation among adult populations can be found in the supplement. (Supp Figures 4-6). All three data-generating mechanisms considered produced summary statistics that matched the observed summary statistics from ZEST well (Supp Fig 1). Examination of the Bayes factors comparing the fit of each Case shows that the generalizable Case 3 performs better than both the canonical Case 1 and Case 2, though Case 2 does appear to perform about as well (Bayes Factor $\approx1$) at lower parasite burdens (Fig 2). Case 1 estimates of $W_{st}$ and $\kappa^W_{st}$ exhibited a similar pattern to $\mathcal{E}_st$ and $\kappa^\mathcal{E}_{st}$, namely increasing aggregation (indicated by decreasing $\kappa$) with decreasing measures of burden (Fig 1 and Fig 2). However, Case 2 estimates showed the opposite effect of decreasing aggregation with decreasing worm burden (Fig 2). Finally, Case 3 estimates appear similar to a mixture of Case 1 and Case 2 results, with one cluster of estimates appearing to exhibit Case 1-like dynamics and another exhibiting Case 2--like dynamics (Fig 2). Further examination of each of these clusters reveals that Case 1-like dynamics recovered from Case 3 estimation occur more frequently in Shehia-years with higher egg burdens, prevalences, and standard errors, while Case 2-like dynamics are recovered at lower egg burdens, prevalences, and standard errors (Supp Fig 2). Additionally, comparison of the estimated mean worm burden from each data-generating case to the observed mean egg burden shows that Case 3 estimates are more similar to Case 1 estimates at higher burdens, but closer to Case 2 estimates at lower burdens (Supp Fig 3).  
+
+
+
+
+```{r mateProb_analytic_predictions, cache = TRUE}
+test_ws <- exp_seq(1e-3,100,200)
+
+phi_pred <- as.data.frame(cbind("W" = test_ws,
+                                "Phi_k005" = sapply(test_ws, phi_Wk, k = 0.05),
+                                "Phi_dynak" = mapply(phi_Wk, test_ws, zanz_kappa_W_gee_case1(test_ws)),
+                                "Phi_case2k005" = sapply(test_ws, phi_wk_sep, k = 0.05),
+                                "Phi_case2dynak" = mapply(phi_wk_sep, test_ws, zanz_kappa_W_gee_case1(test_ws))))
+```
+
+```{r abc_fit_plot_mateProb_child}
+# Case1 mate prob plot ----------------------
+abc_case1_mate_prob <- abc_fin_df_case_long %>% 
+  filter(Case=="Case1" & Pop == "Child") %>% 
+  ggplot(aes(x = obsW.med,
+             y = obsPhiProbW.med, 
+             size = obsPhiProbW.med/(obsPhiProbW.hiq-obsPhiProbW.loq))) +
+    geom_point(col = "#058dd6",
+               alpha = 0.3,
+               show.legend = FALSE) +
+    theme_classic() +
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_blank(),
+          plot.title = element_text(hjust = 0.5),
+          legend.position = "none") +
+    scale_size(range = c(1,4)) +
+    ylim(c(0,1)) +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100"),
+                       limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
+                                  max(abc_fin_df_case_long$obsW.med, na.rm = T))) +
+    labs(title = "Case 1")
+
+# Case2 mate prob plot ----------------------
+abc_case2_mate_prob <- abc_fin_df_case_long %>% 
+  filter(Case=="Case2" & Pop == "Child") %>% 
+  ggplot(aes(x = obsW.med,
+             y = obsPhiProbW.med, 
+             size = obsPhiProbW.med/(obsPhiProbW.hiq-obsPhiProbW.loq))) +
+    geom_point(col = "#cc4a49",
+               alpha = 0.3,
+               show.legend = FALSE) +
+    theme_classic() +
+    theme(axis.title.y = element_text(size = 9.5),
+          axis.title.x = element_blank(),
+          axis.text.x = element_blank(),
+          plot.title = element_text(hjust = 0.5),
+          legend.position = "none") +
+    scale_size(range = c(1,4)) +
+    ylim(c(0,1)) +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100"),
+                       limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
+                                  max(abc_fin_df_case_long$obsW.med, na.rm = T)))+
+    labs(y = expression(Mating~probability~(Phi[st])),
+         title = "Case 2")
+
+# Case3 mate prob plot ----------------------
+abc_case3_mate_prob <- abc_fin_df_case_long %>% 
+  filter(Case=="Case3" & Pop == "Child") %>% 
+  ggplot(aes(x = obsW.med,
+             y = obsPhiProbW.med, 
+             size = obsPhiProbW.med/(obsPhiProbW.hiq-obsPhiProbW.loq))) +
+    geom_point(col = "#7b6c7c",
+               alpha = 0.3,
+               show.legend = FALSE) +
+    theme_classic() +
+    theme(axis.title.y = element_blank(),
+          plot.title = element_text(hjust = 0.5),
+          legend.position = "none") +
+    scale_size(range = c(1,4)) +
+    ylim(c(0,1)) +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100"),
+                       limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
+                                  max(abc_fin_df_case_long$obsW.med, na.rm = T)))+
+    labs(x = expression(Mean~worm~burden~(W[st])),
+         title = "Case 3")
+
+```
+
+```{r abc_fit_plot_mateProb_child_obs_only}
+# Figure is quite busy, so separate out into observations and mating probabilities
+abc_w_mate_prob_obs <- ggplot() +
+  geom_point(data = abc_fin_df_case_long %>% filter(Case %in% c("Case1", "Case2", "Case3") & Pop == "Child"),
+             aes(x = obsW.med,
+                 y = obsPhiProbW.med, 
+                 col = Case,
+                 size = obsPhiProbW.med/(obsPhiProbW.hiq-obsPhiProbW.loq)),
+             alpha = 0.6,
+             show.legend = FALSE) +
+    #facet_grid(Intervention~Isl) +
+    theme_classic() +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100"),
+                       limits = c(0.05, 200)) +
+    scale_color_manual(values = c("#058dd6", "#cc4a49", "#7b6c7c")) +
+    ylim(c(0,1)) +
+    labs(y = expression(Mating~Probability~(Phi(W, kappa))),
+         x = "Mean community worm burden (W)")
+
+abc_w_mate_prob_obs
+
+ggsave(here("Plots", "abc_obs_mate_prob_among_children_points_only.png"),
+       height = 5, width = 8)
+```
+
+```{r abc_fit_plot_mateProb_child_lines_only}
+mate_prob_lines <- phi_pred %>% 
+  pivot_longer(Phi_k005:Phi_case2dynak) %>% 
+  mutate(kap_dyna = if_else(grepl("dynak", name), "Dynamic", "Constant"),
+         Case1_2 = if_else(grepl("case2", name), "Case2", "Case1")) %>% 
+  filter(Case1_2 == "Case1") %>% 
+  ggplot() +
+    geom_line(aes(x = W, y = value, lty = kap_dyna),
+              size = 1.2) +
+    theme_classic() +
+    theme(legend.position = "none") +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100"),
+                       limits = c(0.05, 200)) +
+    ylim(c(0,1)) +
+    labs(y = expression(Mating~Probability~(Phi(W, kappa))),
+         x = expression(Mean~worm~burden~(W[st])))
+
+abc_w_mate_prob_lines <- mate_prob_lines +
+    stat_smooth(data = abc_fin_df_case_long %>% filter(Case %in% c("Case1", "Case2", "Case3") & Pop == "Child"),
+                aes(x = obsW.med, y = obsPhiProbW.med, col = Case)) +
+    scale_color_manual(values = c("#058dd6", "#cc4a49", "#7b6c7c")) +
+    theme(plot.title = element_text(size = 14,hjust = 0.5))# + labs(title = "Observed and Estimated\nMating Probability")
+
+abc_w_mate_prob_lines
+
+ggsave(here("Plots", "abc_obs_mate_prob_among_children_lines_only.png"),
+       height = 5, width = 8)
+```
+
+```{r abc_fit_plot_mateProb_child_lines_only_isl_int_strat}
+abc_w_mate_prob_lines_strat <- mate_prob_lines +
+    stat_smooth(data = abc_fin_df_case_long %>% filter(Case %in% c("Case1", "Case2", "Case3") & Pop == "Child"),
+                aes(x = obsW.med, y = obsPhiProbW.med, col = Case)) +
+    facet_grid(Intervention~Isl) +
+    theme_classic() +
+    theme(legend.position = "None") +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100"),
+                       limits = c(0.05, 200)) +
+    scale_color_manual(values = c("#058dd6", "#cc4a49", "#7b6c7c")) +
+    ylim(c(0,1)) +
+    labs(y = expression(Mating~Probability~(Phi(W, kappa))),
+         x = "Mean community worm burden (W)")
+
+abc_w_mate_prob_lines_strat
+
+ggsave(here("Plots", "abc_obs_mate_prob_among_children_lines_only_strat_isl_int.png"),
+       height = 5, width = 8)
+
+```
+
+```{r unmated_pairs}
+unmated_pairs <- abc_fin_df_case_long %>%
+  filter(Case %in% c("Case1", "Case2", "Case3") & Pop == "Child") %>% 
+  ggplot(aes(x = obsW.med,
+             y = obsNonPhiW.med/n_ppl, 
+             #ymin = dispW.obs.mean-dispW.obs.se, ymax = dispW.obs.mean+dispW.obs.se,
+             #shape = Intervention,
+             col = Case,
+             weight = obsNonPhiW.med/(obsNonPhiW.hiq-obsNonPhiW.loq),
+             size = obsNonPhiW.med/(obsNonPhiW.hiq-obsNonPhiW.loq))) +
+    geom_point(alpha = 0.6) +
+    #geom_errorbar(alpha = 0.6) +
+    #facet_grid(Intervention~Isl) +
+    theme_classic() +
+    geom_abline(intercept = 0, slope = 1, lty=2, size = 1.2) +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100")) +
+    scale_y_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100")) +
+    scale_color_manual(values = c("#058dd6", "#cc4a49", "#7b6c7c")) +
+    stat_smooth() +
+    labs(y = "Number of unmated worms per person",
+         x = "Mean community worm burden (W)") +
+    guides(size = FALSE)
+
+unmated_pairs
+
+ggsave(here("Plots", "abc_obs_unmated_worms_among_children.png"),
+       height = 5, width = 8)
+
+```
+
+```{r Fig3, include = TRUE, warning = FALSE, message = FALSE, fig.height=5.5, fig.width=7, fig.cap="Comparison of predicted and estimated mating probabilities. Along the left side are estimates of the mating probability extracted from the best fit datasets generated in approximate bayesian computation for every Shehia-year across the three cases. Case 1 (Together, top left in blue) estimates produce a high mating probability at high worm burdens that steadily decreases with decreasing mean worm burden. Case 2 (Separate, middle left in red) estimates produce a low mating probability across all mean worm burdens, with a subtle peak in mating probability at intermediate mean worm burdens. Case 3 (Generalizable, bottom left in purple) again appears to show hybridization with mating probability estimates at high mean worm burdens appearing similar to Case 1 and mating probability estimates at low mean worm burdens appearing similar to Case 2. The right panel compares loess-smoothed estimates of the mating probability from ABC estimation for each case to analytical predictions of the mating probability for static (k=0.05, solid black line) and dynamic aggregation (k(W), dashed black line). Analytic predictions of the mating probability are accurate at high mean worm burdens, but diverge from the empirical estimates as the mean worm burden decreases."}
+(abc_case1_mate_prob / abc_case2_mate_prob / abc_case3_mate_prob) | abc_w_mate_prob_lines# + plot_layout(ncol = 2, widths = c(2,3))
+```
+
+Figure 3 shows the mating probability extracted for all three data-generating cases from the best fit datasets generated in ABC estimation for every Shehia-year. These estimates are also compared to analytic predictions of the mating probability for both static aggregation ($\kappa = 0.05$, Fig 3 black solid line) and dynamic aggregation ($\kappa=f(W)$, Fig 3 black dashed line). These analytic predictions align well with empirical Case 1 and Case 3 estimates at high mean worm burdens, but underestimate the mating probability at lower mean worm burdens. Hybridization of Case 1 and Case 2 like dynamics recovered from Case 3 estimates are apparent once again, with Case 3 mating probability estimates similar to Case 1 estimates at high mean worm burdens, and resembling Case 2 estimates at lower mean worm burdens. This leads to uncertain mating probability estimates as the main determinant appears to be whether Case 1 or Case 2 like dynamics are dominant, rather than the mean worm burden or aggregation parameter from which analytic estimates are derived.
