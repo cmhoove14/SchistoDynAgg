@@ -24,9 +24,9 @@ abc_posterior_sums <- bind_rows(lapply(abc_sims, function(abc_run){
                        "Case1_alphaW.med" = NA,
                        "Case1_alphaW.loq" = NA,
                        "Case1_alphaW.hiq" = NA,
-                       "Case1_h.med" = NA,
-                       "Case1_h.loq" = NA,
-                       "Case1_h.hiq" = NA,
+                       # "Case1_h.med" = NA,
+                       # "Case1_h.loq" = NA,
+                       # "Case1_h.hiq" = NA,
                        # case 2 summary stats 
                        "Case2_W.med" = NA,
                        "Case2_W.loq" = NA,
@@ -34,9 +34,9 @@ abc_posterior_sums <- bind_rows(lapply(abc_sims, function(abc_run){
                        "Case2_alphaW.med" = NA,
                        "Case2_alphaW.loq" = NA,
                        "Case2_alphaW.hiq" = NA,
-                       "Case2_h.med" = NA,
-                       "Case2_h.loq" = NA,
-                       "Case2_h.hiq" = NA,
+                       # "Case2_h.med" = NA,
+                       # "Case2_h.loq" = NA,
+                       # "Case2_h.hiq" = NA,
                       # case 3 summary stats 
                        "Case3_W.med" = NA,
                        "Case3_W.loq" = NA,
@@ -44,19 +44,19 @@ abc_posterior_sums <- bind_rows(lapply(abc_sims, function(abc_run){
                        "Case3_alphaW.med" = NA,
                        "Case3_alphaW.loq" = NA,
                        "Case3_alphaW.hiq" = NA,
-                       "Case3_h.med" = NA,
-                       "Case3_h.loq" = NA,
-                       "Case3_h.hiq" = NA,
+                       # "Case3_h.med" = NA,
+                       # "Case3_h.loq" = NA,
+                       # "Case3_h.hiq" = NA,
                       # case 4 summary stats 
                        "Case4_W.med" = NA,
                        "Case4_W.loq" = NA,
                        "Case4_W.hiq" = NA,
                        "Case4_alphaW.med" = NA,
                        "Case4_alphaW.loq" = NA,
-                       "Case4_alphaW.hiq" = NA,
-                       "Case4_h.med" = NA,
-                       "Case4_h.loq" = NA,
-                       "Case4_h.hiq" = NA)
+                       "Case4_alphaW.hiq" = NA)
+                       # "Case4_h.med" = NA,
+                       # "Case4_h.loq" = NA,
+                       # "Case4_h.hiq" = NA)
   } else {
   
   df.out <- tryCatch({
@@ -94,9 +94,9 @@ abc_posterior_sums <- bind_rows(lapply(abc_sims, function(abc_run){
              "Case1_alphaW.med" = abc_case1_sum[2,"disp_W"],
              "Case1_alphaW.loq" = abc_case1_sum[1,"disp_W"],
              "Case1_alphaW.hiq" = abc_case1_sum[3,"disp_W"],
-             "Case1_h.med" = abc_case1_sum[2,"h"],
-             "Case1_h.loq" = abc_case1_sum[1,"h"],
-             "Case1_h.hiq" = abc_case1_sum[3,"h"],
+             # "Case1_h.med" = abc_case1_sum[2,"h"],
+             # "Case1_h.loq" = abc_case1_sum[1,"h"],
+             # "Case1_h.hiq" = abc_case1_sum[3,"h"],
              # case 2 summary stats 
              "Case2_W.med" = abc_case2_sum[2,"mean_W"],
              "Case2_W.loq" = abc_case2_sum[1, "mean_W"],
@@ -104,9 +104,9 @@ abc_posterior_sums <- bind_rows(lapply(abc_sims, function(abc_run){
              "Case2_alphaW.med" = abc_case2_sum[2,"disp_W"],
              "Case2_alphaW.loq" = abc_case2_sum[1,"disp_W"],
              "Case2_alphaW.hiq" = abc_case2_sum[3,"disp_W"],
-             "Case2_h.med" = abc_case2_sum[2,"h"],
-             "Case2_h.loq" = abc_case2_sum[1,"h"],
-             "Case2_h.hiq" = abc_case2_sum[3,"h"],
+             # "Case2_h.med" = abc_case2_sum[2,"h"],
+             # "Case2_h.loq" = abc_case2_sum[1,"h"],
+             # "Case2_h.hiq" = abc_case2_sum[3,"h"],
              # case 3 summary stats 
              "Case3_W.med" = abc_case3_sum[2,"mean_W"],
              "Case3_W.loq" = abc_case3_sum[1, "mean_W"],
@@ -114,19 +114,19 @@ abc_posterior_sums <- bind_rows(lapply(abc_sims, function(abc_run){
              "Case3_alphaW.med" = abc_case3_sum[2,"disp_W"],
              "Case3_alphaW.loq" = abc_case3_sum[1,"disp_W"],
              "Case3_alphaW.hiq" = abc_case3_sum[3,"disp_W"],
-             "Case3_h.med" = abc_case3_sum[2,"h"],
-             "Case3_h.loq" = abc_case3_sum[1,"h"],
-             "Case3_h.hiq" = abc_case3_sum[3,"h"],
+             # "Case3_h.med" = abc_case3_sum[2,"h"],
+             # "Case3_h.loq" = abc_case3_sum[1,"h"],
+             # "Case3_h.hiq" = abc_case3_sum[3,"h"],
              # case 4 summary stats 
              "Case4_W.med" = abc_case4_sum[2,"mean_W"],
              "Case4_W.loq" = abc_case4_sum[1, "mean_W"],
              "Case4_W.hiq" = abc_case4_sum[3, "mean_W"],
              "Case4_alphaW.med" = abc_case4_sum[2,"disp_W"],
              "Case4_alphaW.loq" = abc_case4_sum[1,"disp_W"],
-             "Case4_alphaW.hiq" = abc_case4_sum[3,"disp_W"],
-             "Case4_h.med" = abc_case4_sum[2,"h"],
-             "Case4_h.loq" = abc_case4_sum[1,"h"],
-             "Case4_h.hiq" = abc_case4_sum[3,"h"])
+             "Case4_alphaW.hiq" = abc_case4_sum[3,"disp_W"])
+             # "Case4_h.med" = abc_case4_sum[2,"h"],
+             # "Case4_h.loq" = abc_case4_sum[1,"h"],
+             # "Case4_h.hiq" = abc_case4_sum[3,"h"])
 
   },
 error = function(cond){
@@ -140,9 +140,9 @@ error = function(cond){
              "Case1_alphaW.med" = NA,
              "Case1_alphaW.loq" = NA,
              "Case1_alphaW.hiq" = NA,
-             "Case1_h.med" = NA,
-             "Case1_h.loq" = NA,
-             "Case1_h.hiq" = NA,
+             # "Case1_h.med" = NA,
+             # "Case1_h.loq" = NA,
+             # "Case1_h.hiq" = NA,
              # case 2 summary stats 
              "Case2_W.med" = NA,
              "Case2_W.loq" = NA,
@@ -150,9 +150,9 @@ error = function(cond){
              "Case2_alphaW.med" = NA,
              "Case2_alphaW.loq" = NA,
              "Case2_alphaW.hiq" = NA,
-             "Case2_h.med" = NA,
-             "Case2_h.loq" = NA,
-             "Case2_h.hiq" = NA,
+             # "Case2_h.med" = NA,
+             # "Case2_h.loq" = NA,
+             # "Case2_h.hiq" = NA,
              # case 3 summary stats 
              "Case3_W.med" = NA,
              "Case3_W.loq" = NA,
@@ -160,19 +160,19 @@ error = function(cond){
              "Case3_alphaW.med" = NA,
              "Case3_alphaW.loq" = NA,
              "Case3_alphaW.hiq" = NA,
-             "Case3_h.med" = NA,
-             "Case3_h.loq" = NA,
-             "Case3_h.hiq" = NA,
+             # "Case3_h.med" = NA,
+             # "Case3_h.loq" = NA,
+             # "Case3_h.hiq" = NA,
              # case 4 summary stats 
              "Case4_W.med" = NA,
              "Case4_W.loq" = NA,
              "Case4_W.hiq" = NA,
              "Case4_alphaW.med" = NA,
              "Case4_alphaW.loq" = NA,
-             "Case4_alphaW.hiq" = NA,
-             "Case4_h.med" = NA,
-             "Case4_h.loq" = NA,
-             "Case4_h.hiq" = NA)
+             "Case4_alphaW.hiq" = NA)
+             # "Case4_h.med" = NA,
+             # "Case4_h.loq" = NA,
+             # "Case4_h.hiq" = NA)
   
 })    
 
