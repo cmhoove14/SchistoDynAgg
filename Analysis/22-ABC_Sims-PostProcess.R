@@ -645,6 +645,4 @@ abc_fin_df_case_long <- abc_fin_df_long %>%
               values_fn = {first})
 
 save(abc_fin_df_case_long, abc_fin_df_long, abc_fin_df2, abc_fin_df,
-     here::here("Data/Derived/abc_processed_results.Rdata"))
-
-rm(abc_sims) ; quiet(gc())
+     file = here::here("Data/Derived/abc_processed_results.Rdata"))
