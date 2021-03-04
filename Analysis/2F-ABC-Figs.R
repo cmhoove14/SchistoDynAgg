@@ -97,6 +97,39 @@ kap_W_case3_plot <- abc_fin_df_case_long %>%
   labs(title = "Case 3",
        tag = "C")
 
+# Case4 PLot ----------------------
+kap_W_case4_plot <- abc_fin_df_case_long %>%
+  filter(Case=="Case4" & Pop == "Child") %>% 
+  ggplot(aes(x = obsW.med,
+             y = obsalphaW.med^-1, 
+             weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +
+  geom_point(aes(size = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq)),
+             col = "#64a860",
+             alpha = 0.3,
+             show.legend = FALSE) +
+  stat_smooth(col = "#64a860") +
+  theme_classic() +
+  theme(axis.title.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.line.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        plot.title = element_text(hjust = 0.5)) +
+  scale_size(range = c(1,4)) +
+  scale_x_continuous(trans = "log",
+                     breaks = c(0.01, 0.1, 1, 10, 100),
+                     labels = c("0.01", "0.1", "1", "10", "100"),
+                     limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
+                                max(abc_fin_df_case_long$obsW.med, na.rm = T))) +
+  scale_y_continuous(trans = "log",
+                     breaks = c(0.01, 0.1, 1, 10, 100),
+                     labels = c("0.01", "0.1", "1", "10", "100"),
+                     limits = c(min(abc_fin_df_case_long$obsalphaW.med^-1, na.rm = T),
+                                max(abc_fin_df_case_long$obsalphaW.med^-1, na.rm = T))) +
+  labs(title = "Case 4",
+       tag = "D")
+
+
 # Bayes factors (omparative estimate of model performance) for each case across observed egg burden
 abc_bayesF_comp <- abc_fin_df_case_long %>% 
   filter(Case %in% c("IIItoI", "IIItoII", "IItoI") & Pop == "Child") %>% 
@@ -120,20 +153,20 @@ abc_bayesF_comp <- abc_fin_df_case_long %>%
   labs(x = expression(paste("Mean egg burden (\U2130"[st],")")),
        y = "Bayes Factor",
        col = "Comparison",
-       tag = "D")
+       tag = "E")
 
 #Fig 2: ABC kappa by W estimates ------------
 png(here::here("Figures/Fig2_ABC_Kap_by_W_Results.png"),
-    height = 5.5, width = 7, units = "in", res = 300)
+    height = 7, width = 7, units = "in", res = 300)
 
-(kap_W_case1_plot | kap_W_case2_plot | kap_W_case3_plot) / abc_bayesF_comp +plot_layout(heights = c(2,3))
+(kap_W_case1_plot | kap_W_case2_plot) / (kap_W_case3_plot | kap_W_case4_plot) / abc_bayesF_comp #+ plot_layout(heights = c(2,3))
 
 dev.off()
 
 pdf(here::here("Figures/Fig2_ABC_Kap_by_W_Results.pdf"),
-    height = 5.5, width = 7)
+    height = 7, width = 7)
 
-(kap_W_case1_plot | kap_W_case2_plot | kap_W_case3_plot) / abc_bayesF_comp +plot_layout(heights = c(2,3))
+(kap_W_case1_plot | kap_W_case2_plot) / (kap_W_case3_plot | kap_W_case4_plot) / abc_bayesF_comp #+ plot_layout(heights = c(2,3))
 
 dev.off()
 
@@ -236,6 +269,30 @@ abc_case3_mate_prob <- abc_fin_df_case_long %>%
        title = "Case 3",
        tag = "C")
 
+# Case4 mate prob plot ----------------------
+abc_case4_mate_prob <- abc_fin_df_case_long %>% 
+  filter(Case=="Case4" & Pop == "Child") %>% 
+  ggplot(aes(x = obsW.med,
+             y = obsPhiProbW.med, 
+             size = obsPhiProbW.med/(obsPhiProbW.hiq-obsPhiProbW.loq))) +
+  geom_point(col = "#64a860",
+             alpha = 0.3,
+             show.legend = FALSE) +
+  theme_classic() +
+  theme(axis.title.y = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
+  scale_size(range = c(1,4)) +
+  ylim(c(0,1)) +
+  scale_x_continuous(trans = "log",
+                     breaks = c(0.01, 0.1, 1, 10, 100),
+                     labels = c("0.01", "0.1", "1", "10", "100"),
+                     limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
+                                max(abc_fin_df_case_long$obsW.med, na.rm = T)))+
+  labs(x = expression(Mean~worm~burden~(W[st])),
+       title = "Case 4",
+       tag = "D")
+
 # Mating probabilities ------------
 mate_prob_lines <- phi_pred %>% 
   pivot_longer(Phi_k005:Phi_case2dynak) %>% 
@@ -257,21 +314,21 @@ mate_prob_lines <- phi_pred %>%
        tag = "D")
 
 abc_w_mate_prob_lines <- mate_prob_lines +
-  stat_smooth(data = abc_fin_df_case_long %>% filter(Case %in% c("Case1", "Case2", "Case3") & Pop == "Child"),
+  stat_smooth(data = abc_fin_df_case_long %>% filter(Case %in% c("Case1", "Case2", "Case3", "Case4") & Pop == "Child"),
               aes(x = obsW.med, y = obsPhiProbW.med, col = Case)) +
-  scale_color_manual(values = c("#058dd6", "#cc4a49", "#7b6c7c")) +
+  scale_color_manual(values = c("#058dd6", "#cc4a49", "#7b6c7c", "#64a860")) +
   theme(plot.title = element_text(size = 14,hjust = 0.5))# + labs(title = "Observed and Estimated\nMating Probability")
 
 png(here::here("Figures/Fig3_ABC_MateProb_Results.png"),
     height = 5.5, width = 7, units = "in", res = 300)
 
-(abc_case1_mate_prob / abc_case2_mate_prob / abc_case3_mate_prob) | abc_w_mate_prob_lines
+(abc_case1_mate_prob | abc_case2_mate_prob) / (abc_case3_mate_prob | abc_case4_mate_prob) | abc_w_mate_prob_lines + plot_layout(widths = c(3,2))
 
 dev.off()
 
 pdf(here::here("Figures/Fig3_ABC_MateProb_Results.pdf"),
     height = 5.5, width = 7)
 
-(abc_case1_mate_prob / abc_case2_mate_prob / abc_case3_mate_prob) | abc_w_mate_prob_lines
+(abc_case1_mate_prob | abc_case2_mate_prob) / (abc_case3_mate_prob | abc_case4_mate_prob) | abc_w_mate_prob_lines + plot_layout(widths = c(3,2))
 
 dev.off()
