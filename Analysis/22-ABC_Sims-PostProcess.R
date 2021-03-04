@@ -1,6 +1,8 @@
 library(tidyverse)
 library(abc)
 
+devtools::load_all()
+
 abc_sims <- readRDS(here::here("Data/Derived/abc_fit_ridge_log_4cases_hrg_fixed_1e+05iterations.rds"))
 
 # Get posterior summaries ----------------------
