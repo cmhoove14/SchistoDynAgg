@@ -39,6 +39,7 @@
   
   yO <- bind_rows(yOc, yOa)
   
+  saveRDS(yO, here::here("Data/Derived/ABC_yO_data.rds"))
 # Declare priors and run in parallel. takes ~ 3 hours on 8 core Lenovo ThinkPad with AMD Ryzen processor or ~1.5 hours on 24 compute node on Biostat cluster with 24 cores ----------------------
   abc_priors <- list(
     "mean_W_lo"     = 1e-6,
