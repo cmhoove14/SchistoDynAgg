@@ -53,7 +53,10 @@ abc_posterior_sums <- bind_rows(lapply(abc_sims, function(abc_run){
                        "Case4_W.hiq" = NA,
                        "Case4_alphaW.med" = NA,
                        "Case4_alphaW.loq" = NA,
-                       "Case4_alphaW.hiq" = NA)
+                       "Case4_alphaW.hiq" = NA,
+                       "Case4_partW.med" = NA,
+                       "Case4_partW.loq" = NA,
+                       "Case4_partW.hiq" = NA)
                        # "Case4_h.med" = NA,
                        # "Case4_h.loq" = NA,
                        # "Case4_h.hiq" = NA)
@@ -71,12 +74,12 @@ abc_posterior_sums <- bind_rows(lapply(abc_sims, function(abc_run){
     abc_case3_pars <- cbind(abc_case3_pars, 
                             est_case3_meanW(alphaS = 1, betaS = 1/500, meanC = abc_case3_pars[,"mean_C"]),
                             est_case3_varW(alphaS = 1, betaS = 1/500, meanC = abc_case3_pars[,"mean_C"], alphaC = abc_case3_pars[,"disp_C"]))
-      colnames(abc_case3_pars)[4:5] <- c("mean_W", "var_W")
+      colnames(abc_case3_pars)[3:4] <- c("mean_W", "var_W")
   
     abc_case3_pars <- cbind(abc_case3_pars, 
                             est_dispW(abc_case3_pars[,"mean_W"], abc_case3_pars[,"var_W"]))
   
-      colnames(abc_case3_pars)[6] <- "disp_W"
+      colnames(abc_case3_pars)[5] <- "disp_W"
       
   abc_case3_sum <- get_abc_med_iqr(abc_case3_pars, abc_run[[6]]$weights)
   
@@ -123,7 +126,10 @@ abc_posterior_sums <- bind_rows(lapply(abc_sims, function(abc_run){
              "Case4_W.hiq" = abc_case4_sum[3, "mean_W"],
              "Case4_alphaW.med" = abc_case4_sum[2,"disp_W"],
              "Case4_alphaW.loq" = abc_case4_sum[1,"disp_W"],
-             "Case4_alphaW.hiq" = abc_case4_sum[3,"disp_W"])
+             "Case4_alphaW.hiq" = abc_case4_sum[3,"disp_W"],
+             "Case4_partW.med" = abc_case4_sum[2,"part_W"],
+             "Case4_partW.loq" = abc_case4_sum[1,"part_W"],
+             "Case4_partW.hiq" = abc_case4_sum[3,"part_W"])
              # "Case4_h.med" = abc_case4_sum[2,"h"],
              # "Case4_h.loq" = abc_case4_sum[1,"h"],
              # "Case4_h.hiq" = abc_case4_sum[3,"h"])
@@ -169,7 +175,10 @@ error = function(cond){
              "Case4_W.hiq" = NA,
              "Case4_alphaW.med" = NA,
              "Case4_alphaW.loq" = NA,
-             "Case4_alphaW.hiq" = NA)
+             "Case4_alphaW.hiq" = NA,
+             "Case4_partW.med" = NA,
+             "Case4_partW.loq" = NA,
+             "Case4_partW.hiq" = NA)
              # "Case4_h.med" = NA,
              # "Case4_h.loq" = NA,
              # "Case4_h.hiq" = NA)
@@ -282,18 +291,18 @@ abc_gendata_sums <- do.call(rbind, lapply(abc_sims, function(abc_run){
     colnames(abc_case3_obs)[ncol(abc_case3_obs)] <- "disp_W"
 
     abc_case3_obs <- cbind(abc_case3_obs, 
-                           abc_run[[12]][,"cor_SC"])
+                           abc_run[[13]][,"cor_SC"])
     colnames(abc_case3_obs)[ncol(abc_case3_obs)] <- "cor_SC"
           
   abc_case3_obs_sum <- get_abc_med_iqr(abc_case3_obs, abc_run[[6]]$weights)
 
 #Process case 4 runs    
-  abc_case4_obs <- abc_run[[9]]
+  abc_case4_obs <- abc_run[[12]]
     abc_case4_obs <- cbind(abc_case4_obs, 
                            est_dispW(abc_case4_obs[,"mean_W"], abc_case4_obs[,"var_W"]))
     colnames(abc_case4_obs)[ncol(abc_case4_obs)] <- "disp_W"
   
-  abc_case4_obs_sum <- get_abc_med_iqr(abc_case4_obs, abc_run[[5]]$weights)
+  abc_case4_obs_sum <- get_abc_med_iqr(abc_case4_obs, abc_run[[7]]$weights)
   
   
     data.frame("Shehia" = shehia,
@@ -360,9 +369,9 @@ abc_gendata_sums <- do.call(rbind, lapply(abc_sims, function(abc_run){
                "Case4_obsNonPhiW.med" = abc_case4_obs_sum[2,"non_Phi"],
                "Case4_obsNonPhiW.loq" = abc_case4_obs_sum[1,"non_Phi"],
                "Case4_obsNonPhiW.hiq" = abc_case4_obs_sum[3,"non_Phi"],
-               "Case4_corSC.med" = abc_case4_obs_sum[2,"cor_SC"],
-               "Case4_corSC.loq" = abc_case4_obs_sum[1,"cor_SC"],
-               "Case4_corSC.hiq" = abc_case4_obs_sum[3,"cor_SC"])
+               "Case4_corSC.med" = NA,
+               "Case4_corSC.loq" = NA,
+               "Case4_corSC.hiq" = NA)
 
   },
 error = function(cond){
