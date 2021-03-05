@@ -5,8 +5,30 @@
 
 
 # Couple util functions --------------
+#' @title Log-distributed sequence
+#'
+#' @description Functions just like `seq` but evenly distributes values across the full range
+#' rather than for instance `seq(0.000001, 10000, length.out = 100)` returning values that are all >100
+#'
+#' @param min minimum value in the sequence
+#' @param max maximum value in the sequence
+#' @param seq.length length of the sequence
+#'
+#' @return numeric vector spanning min and max with n = seq.length entries
+#' @export
+#'
+#'
 
-#' @title Quitely run
+exp_seq <- function(min, max, seq.length){
+  exp(seq(log(min), log(max), length.out = seq.length))
+}
+
+
+
+
+
+
+#' @title Quietly run
 #' 
 #' @description Run without outputting messages/warnings
 #' 
