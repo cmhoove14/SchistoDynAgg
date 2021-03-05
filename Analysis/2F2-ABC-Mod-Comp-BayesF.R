@@ -28,11 +28,14 @@ Case4_part_par_by_W <- abc_fin_df_case_long %>%
                      labels = c("0.01", "0.1", "1", "10", "100"),
                      limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
                                 max(abc_fin_df_case_long$obsW.med, na.rm = T))) +
-  ylim(c(0,1))
+  ylim(c(0,1)) +
+  labs(y = "Case 4 partition parameter",
+       x = "W")
 
-+
-  labs(y = expression(Worm~Dispersion~Parameter~(kappa[st]^W)),
-       title = "A")
+Case4_part_par_by_W
+
+ggsave(here::here("Figures/ABC_Case4_Partition_Parameter_by_W.png"),
+       height = 4, width = 4, units = "in")
 
 # Bayes factors (Comparative estimate of model performance) for each case across observed egg burden -------------
 abc_bayesF_comp <- abc_fin_df_case_long %>% 
@@ -52,14 +55,15 @@ abc_bayesF_comp <- abc_fin_df_case_long %>%
   # scale_color_manual(values = c("darkblue", "darkred", "forestgreen"),
   #                    labels = c("Case 3 to Case 1", "Case 3 to Case 2","Case 2 to Case 1")) +
   theme_classic() +
-  theme(legend.position = c(0.15,0.8),
+  theme(legend.position = "bottom",
         legend.text = element_text(size = 8),
         legend.title = element_text(size = 10)) +
   labs(x = expression(paste("Mean egg burden (\U2130"[st],")")),
        y = "Bayes Factor",
-       col = "Comparison",
-       tag = "E")
-
+       col = "Comparison")
 
 abc_bayesF_comp
+
+ggsave(here::here("Figures/ABC_Bayes_Factors.png"),
+       height = 5, width = 7, units = "in")
 

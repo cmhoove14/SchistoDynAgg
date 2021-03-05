@@ -167,6 +167,6 @@ dev.off()
 pdf(here::here("Figures/Fig3_ABC_MateProb_Results.pdf"),
     height = 5.5, width = 7)
 
-(abc_case1_mate_prob | abc_case2_mate_prob) / (abc_case3_mate_prob | abc_case4_mate_prob) | abc_w_mate_prob_lines + plot_layout(widths = c(3,2))
+(abc_case1_mate_prob | abc_case2_mate_prob) / (abc_case3_mate_prob | abc_case4_mate_prob) | abc_w_mate_prob_lines# + plot_layout(widths = c(3,2))
 
 dev.off()

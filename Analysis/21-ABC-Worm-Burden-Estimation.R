@@ -63,7 +63,7 @@
   )
   
 #Setup for running jobs across parallel nodes in cluster
-  n_iter <- 1e5
+  n_iter <- 1e6
   
   start.time <- Sys.time()
   n_cores <- parallel::detectCores()

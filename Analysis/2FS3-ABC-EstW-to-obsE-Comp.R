@@ -57,3 +57,6 @@ kW_by_E_plot <- abc_fin_df_case_long %>%
        x = expression(Observed~Mean~Egg~Burden~(E[st])))
 
 (W_by_E_plot | kW_by_E_plot)
+
+ggsave(here::here("Figures/ABC-Comp_W_to_obsE.png"),
+       height = 5, width = 7, units = "in")

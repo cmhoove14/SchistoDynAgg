@@ -52,6 +52,6 @@ abc_obs_gen_comp_plot <- abc_obs_gen_comp %>%
 abc_obs_gen_comp_plot
 
 ggsave(here("Figures/Supp1-abc_obs_gen_validation.png"),
-       height = 5, width = 8)
+       height = 5, width = 8, units = "in")
 
 #"Comparison of generated to observed summary statistics used in approximate bayesian computation estimation of community parasite burdens. Colors indicate the data generating Case and the 1:1 line implying perfect agreement between observed and generated data is shown. Error bars correspond to interquartile ranges of the generated summary statistics from parameter sets included in the posterior distribution."
