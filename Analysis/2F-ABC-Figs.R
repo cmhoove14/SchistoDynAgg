@@ -2,11 +2,13 @@ library(tidyverse)
 library(geepack)
 library(patchwork)
 
+devtools::load_all()
+
 load(here::here("Data/Derived/abc_processed_results.Rdata"))
 
 # Case1 PLot ----------------------
 kap_W_case1_plot <- abc_fin_df_case_long %>%
-  filter(Case=="Case1" & Pop == "Child") %>% 
+  filter(Case=="Case1" & pop == "Child") %>% 
   ggplot(aes(x = obsW.med,
              y = obsalphaW.med^-1, 
              weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +
@@ -35,7 +37,7 @@ kap_W_case1_plot <- abc_fin_df_case_long %>%
 
 # Case2 PLot ----------------------
 kap_W_case2_plot <- abc_fin_df_case_long %>%
-  filter(Case=="Case2" & Pop == "Child") %>% 
+  filter(Case=="Case2" & pop == "Child") %>% 
   ggplot(aes(x = obsW.med,
              y = obsalphaW.med^-1, 
              weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +
@@ -67,7 +69,7 @@ kap_W_case2_plot <- abc_fin_df_case_long %>%
 
 # Case3 PLot ----------------------
 kap_W_case3_plot <- abc_fin_df_case_long %>%
-  filter(Case=="Case3" & Pop == "Child") %>% 
+  filter(Case=="Case3" & pop == "Child") %>% 
   ggplot(aes(x = obsW.med,
              y = obsalphaW.med^-1, 
              weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +
@@ -99,7 +101,7 @@ kap_W_case3_plot <- abc_fin_df_case_long %>%
 
 # Case4 PLot ----------------------
 kap_W_case4_plot <- abc_fin_df_case_long %>%
-  filter(Case=="Case4" & Pop == "Child") %>% 
+  filter(Case=="Case4" & pop == "Child") %>% 
   ggplot(aes(x = obsW.med,
              y = obsalphaW.med^-1, 
              weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +
@@ -132,7 +134,7 @@ kap_W_case4_plot <- abc_fin_df_case_long %>%
 
 # Bayes factors (omparative estimate of model performance) for each case across observed egg burden
 abc_bayesF_comp <- abc_fin_df_case_long %>% 
-  filter(Case %in% c("IIItoI", "IIItoII", "IItoI") & Pop == "Child") %>% 
+  filter(Case %in% c("IIItoI", "IIItoII", "IItoI") & pop == "Child") %>% 
   ggplot(aes(x = UF_mean, y = BayesF, col = Case)) +
   stat_smooth() +
   geom_hline(yintercept = 1) +
@@ -178,7 +180,7 @@ test_ws <- exp_seq(1e-3,100,200)
 alphaW_gee_case1 <- geeglm(log(obsalphaW.med) ~ log(obsW.med), id = as.factor(Shehia),
                            family = "gaussian", corstr = "unstructured",
                            weights = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq),
-                           data = abc_fin_df_case_long %>% filter(Case == "Case1" & Pop == "Child"))
+                           data = abc_fin_df_case_long %>% filter(Case == "Case1" & pop == "Child"))
 
 geeW_coef1_case1 <- coef(alphaW_gee_case1)[1]
 geeW_coef2_case1 <- coef(alphaW_gee_case1)[2]
@@ -196,7 +198,7 @@ phi_pred <- as.data.frame(cbind("W" = test_ws,
 
 # Case1 mate prob plot ----------------------
 abc_case1_mate_prob <- abc_fin_df_case_long %>% 
-  filter(Case=="Case1" & Pop == "Child") %>% 
+  filter(Case=="Case1" & pop == "Child") %>% 
   ggplot(aes(x = obsW.med,
              y = obsPhiProbW.med, 
              size = obsPhiProbW.med/(obsPhiProbW.hiq-obsPhiProbW.loq))) +
@@ -221,7 +223,7 @@ abc_case1_mate_prob <- abc_fin_df_case_long %>%
 
 # Case2 mate prob plot ----------------------
 abc_case2_mate_prob <- abc_fin_df_case_long %>% 
-  filter(Case=="Case2" & Pop == "Child") %>% 
+  filter(Case=="Case2" & pop == "Child") %>% 
   ggplot(aes(x = obsW.med,
              y = obsPhiProbW.med, 
              size = obsPhiProbW.med/(obsPhiProbW.hiq-obsPhiProbW.loq))) +
@@ -247,7 +249,7 @@ abc_case2_mate_prob <- abc_fin_df_case_long %>%
 
 # Case3 mate prob plot ----------------------
 abc_case3_mate_prob <- abc_fin_df_case_long %>% 
-  filter(Case=="Case3" & Pop == "Child") %>% 
+  filter(Case=="Case3" & pop == "Child") %>% 
   ggplot(aes(x = obsW.med,
              y = obsPhiProbW.med, 
              size = obsPhiProbW.med/(obsPhiProbW.hiq-obsPhiProbW.loq))) +
@@ -271,7 +273,7 @@ abc_case3_mate_prob <- abc_fin_df_case_long %>%
 
 # Case4 mate prob plot ----------------------
 abc_case4_mate_prob <- abc_fin_df_case_long %>% 
-  filter(Case=="Case4" & Pop == "Child") %>% 
+  filter(Case=="Case4" & pop == "Child") %>% 
   ggplot(aes(x = obsW.med,
              y = obsPhiProbW.med, 
              size = obsPhiProbW.med/(obsPhiProbW.hiq-obsPhiProbW.loq))) +
@@ -314,7 +316,7 @@ mate_prob_lines <- phi_pred %>%
        tag = "D")
 
 abc_w_mate_prob_lines <- mate_prob_lines +
-  stat_smooth(data = abc_fin_df_case_long %>% filter(Case %in% c("Case1", "Case2", "Case3", "Case4") & Pop == "Child"),
+  stat_smooth(data = abc_fin_df_case_long %>% filter(Case %in% c("Case1", "Case2", "Case3", "Case4") & pop == "Child"),
               aes(x = obsW.med, y = obsPhiProbW.med, col = Case)) +
   scale_color_manual(values = c("#058dd6", "#cc4a49", "#7b6c7c", "#64a860")) +
   theme(plot.title = element_text(size = 14,hjust = 0.5))# + labs(title = "Observed and Estimated\nMating Probability")
