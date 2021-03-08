@@ -69,7 +69,7 @@ boot_ests <- sapply(1:boot_samps, function(...){
   
   # For some strata with limited observations (e.g. many samples of adults resulted in very few positives leading to very few non-NA shehia-level observations), bootstrap sampling results in a sample that throws "Error in `contrasts<-`(`*tmp*`, value = contr.funs[1 + isOF[nn]]) : contrasts can be applied only to factors with 2 or more levels" due to all groups in the sample having two or fewer observations, so threw in this ifelse to skip over these samples
     
-  if(max(count(temp_boot_dat_df[!duplicated(temp_boot_dat_df),"Shehia"]) %>% pull(n)) <= 2){
+  if(max(count(boot_dat[!duplicated(boot_dat),"Shehia"]) %>% pull(n)) <= 2){
     est.out <- NA_real_
   } else {
   # Fit model
