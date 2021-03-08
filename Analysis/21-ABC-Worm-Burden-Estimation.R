@@ -6,27 +6,46 @@
 
 # Setup ---------------
   devtools::load_all()
-  
+  n_iter <- 1e6
+
 
 # Load data and process for input to ABC ---------------
-  adlt_sums <- readRDS(here::here("Data", "Derived", "adults_shehia_sums_Unguja_Pemba_2012_2017.rds"))
-  chld_sums <- readRDS(here::here("Data", "Derived", "chldrn_shehia_sums_Unguja_Pemba_2012_2017.rds"))
+# Filter out pilot observations of 50 children in year 2011 and only focus on study years 2012-2017
+comm_sums <- readRDS(here::here("Data", "Derived", "adults&chldrn_shehia_sums_Unguja_Pemba_2012_2017.rds")) %>% 
+  filter(Year != 2011)
+
+adlt_sums <- readRDS(here::here("Data", "Derived", "adults_shehia_sums_Unguja_Pemba_2012_2017.rds")) %>% 
+  filter(Year != 2011)
+
+chld_sums <- readRDS(here::here("Data", "Derived", "chldrn_shehia_sums_Unguja_Pemba_2012_2017.rds")) %>% 
+  filter(Year != 2011)
+
   
-  
-  yOc <- chld_sums %>%
-    filter(UF_max > 1 & Year > 2011) %>%
+  yOm <- comm_sums %>%
+    filter(UF_max > 1) %>%
     mutate(
       UF_se = sqrt(UF_var) / sqrt(n_ppl),
       UFpos2n = UF_pos ^ 2 / n_ppl,
-      pop = "Child"
+      pop = "Comm"
     ) %>%
     ungroup() %>%
     dplyr::select(Isl, Shehia, Year, UF_mean, UF_se, UF_pos, n_ppl, UFpos2n, pop)
   
   
+  yOc <- chld_sums %>%
+      filter(UF_max > 1) %>%
+      mutate(
+        UF_se = sqrt(UF_var) / sqrt(n_ppl),
+        UFpos2n = UF_pos ^ 2 / n_ppl,
+        pop = "Child"
+      ) %>%
+      ungroup() %>%
+      dplyr::select(Isl, Shehia, Year, UF_mean, UF_se, UF_pos, n_ppl, UFpos2n, pop)
+  
+  
   
   yOa <- adlt_sums %>%
-    filter(UF_max > 1 & Year > 2011) %>%
+    filter(UF_max > 1) %>%
     mutate(
       UF_se = sqrt(UF_var) / sqrt(n_ppl),
       UFpos2n = UF_pos ^ 2 / n_ppl,
@@ -37,7 +56,7 @@
   
   
   
-  yO <- bind_rows(yOc, yOa)
+  yO <- bind_rows(yOm, yOc, yOa)
   
   saveRDS(yO, here::here("Data/Derived/ABC_yO_data.rds"))
 # Declare priors and run in parallel. takes ~ 3 hours on 8 core Lenovo ThinkPad with AMD Ryzen processor or ~1.5 hours on 24 compute node on Biostat cluster with 24 cores ----------------------
@@ -63,7 +82,6 @@
   )
   
 #Setup for running jobs across parallel nodes in cluster
-  n_iter <- 1e6
   
   start.time <- Sys.time()
   n_cores <- parallel::detectCores()
