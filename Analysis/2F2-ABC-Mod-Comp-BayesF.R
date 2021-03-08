@@ -10,7 +10,7 @@ load(here::here("Data/Derived/abc_processed_results.Rdata"))
 
 # Case 4 partition parameter summary ----------------
 Case4_part_par_by_W <- abc_fin_df_case_long %>%
-  filter(Case=="Case4" & pop == "Child") %>% 
+  filter(Case=="Case4" & pop == "Comm") %>% 
   ggplot(aes(x = obsW.med,
              y = partW.med, 
              weight = partW.med/(partW.hiq-partW.loq))) +
@@ -40,7 +40,7 @@ ggsave(here::here("Figures/ABC_Case4_Partition_Parameter_by_W.png"),
 # Bayes factors (Comparative estimate of model performance) for each case across observed egg burden -------------
 abc_bayesF_comp <- abc_fin_df_case_long %>% 
   filter(Case %in% c("IIItoI", "IIItoII", "IItoI",
-                     "IVtoI", "IVtoII", "IVtoIII") & pop == "Child") %>% 
+                     "IVtoI", "IVtoII", "IVtoIII") & pop == "Comm") %>% 
   ggplot(aes(x = UF_mean, y = BayesF, col = Case)) +
   stat_smooth() +
   geom_hline(yintercept = 1) +

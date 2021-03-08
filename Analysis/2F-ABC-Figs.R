@@ -10,7 +10,7 @@ load(here::here("Data/Derived/abc_processed_results.Rdata"))
 
 # Case1 PLot ----------------------
 kap_W_case1_plot <- abc_fin_df_case_long %>%
-  filter(Case=="Case1" & pop == "Child") %>% 
+  filter(Case=="Case1" & pop == "Comm") %>% 
   ggplot(aes(x = obsW.med,
              y = obsalphaW.med^-1, 
              weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +
@@ -37,7 +37,7 @@ kap_W_case1_plot <- abc_fin_df_case_long %>%
 
 # Case2 PLot ----------------------
 kap_W_case2_plot <- abc_fin_df_case_long %>%
-  filter(Case=="Case2" & pop == "Child") %>% 
+  filter(Case=="Case2" & pop == "Comm") %>% 
   ggplot(aes(x = obsW.med,
              y = obsalphaW.med^-1, 
              weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +
@@ -66,7 +66,7 @@ kap_W_case2_plot <- abc_fin_df_case_long %>%
 
 # Case3 PLot ----------------------
 kap_W_case3_plot <- abc_fin_df_case_long %>%
-  filter(Case=="Case3" & pop == "Child") %>% 
+  filter(Case=="Case3" & pop == "Comm") %>% 
   ggplot(aes(x = obsW.med,
              y = obsalphaW.med^-1, 
              weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +
@@ -93,7 +93,7 @@ kap_W_case3_plot <- abc_fin_df_case_long %>%
 
 # Case4 PLot ----------------------
 kap_W_case4_plot <- abc_fin_df_case_long %>%
-  filter(Case=="Case4" & pop == "Child") %>% 
+  filter(Case=="Case4" & pop == "Comm") %>% 
   ggplot(aes(x = obsW.med,
              y = obsalphaW.med^-1, 
              weight = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq))) +

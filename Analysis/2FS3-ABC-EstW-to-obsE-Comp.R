@@ -8,7 +8,7 @@ load(here::here("Data/Derived/abc_processed_results.Rdata"))
 
 # Plot dispersion by worm burden   
 W_by_E_plot <- abc_fin_df_case_long %>%
-  filter(Case %in% c("Case1", "Case2", "Case3", "Case4") & pop == "Child") %>% 
+  filter(Case %in% c("Case1", "Case2", "Case3", "Case4") & pop == "Comm") %>% 
   ggplot(aes(x = UF_mean,
              y = obsW.med, 
              #shape = Intervention,
@@ -33,7 +33,7 @@ W_by_E_plot <- abc_fin_df_case_long %>%
 
 # Plot dispersion by worm burden   
 kW_by_E_plot <- abc_fin_df_case_long %>%
-  filter(Case %in% c("Case1", "Case2", "Case3", "Case4") & pop == "Child") %>% 
+  filter(Case %in% c("Case1", "Case2", "Case3", "Case4") & pop == "Comm") %>% 
   ggplot(aes(x = UF_mean,
              y = obsalphaW.med^-1, 
              #shape = Intervention,
