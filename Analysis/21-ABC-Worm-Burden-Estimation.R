@@ -6,7 +6,7 @@
 
 # Setup ---------------
   devtools::load_all()
-  n_iter <- 1e6
+  n_iter <- 1e5
 
 
 # Load data and process for input to ABC ---------------
