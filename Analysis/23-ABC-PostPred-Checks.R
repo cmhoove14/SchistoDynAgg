@@ -10,63 +10,26 @@ n_post_pred_runs <- 1000   # Posterior draws
 post_pred_quants <- c(0.025,0.25,0.5,0.75,0.975) #Quantiles for summaries
 
 # Get posterior summaries ----------------------
-abc_post_pred_checks <- bind_rows(lapply(1:length(abc_sims), function(sim){
-  abc_run <- abc_sims[[sim]]
-  n_ppl   <- yO$n_ppl[sim]
+abc_successes <- sapply(1:length(abc_sims), function(s){
+  ifelse(length(abc_sims[[s]]) == 4, NA, s)
+})
+
+abc_sims2 <- abc_sims[na.omit(abc_successes)]
+
+abc_post_pred_checks <- bind_rows(lapply(1:length(abc_sims2), function(sim){
+  abc_run <- abc_sims2[[sim]]
+     <- yO$n_ppl[sim]
   
   shehia <- as.character(abc_run[[1]])
   year   <- as.integer(abc_run[[2]])
   pop    <- as.character(abc_run[[3]])
   
-  if(length(abc_run) == 4){
-    
-    df.out <- data.frame("Shehia" = shehia,
-                         "Year" = year,
-                         "Pop" = pop,
-                         # case 1 summary stats 
-                         "Case1_W.med" = NA,
-                         "Case1_W.loq" = NA,
-                         "Case1_W.hiq" = NA,
-                         "Case1_alphaW.med" = NA,
-                         "Case1_alphaW.loq" = NA,
-                         "Case1_alphaW.hiq" = NA,
-                         # "Case1_h.med" = NA,
-                         # "Case1_h.loq" = NA,
-                         # "Case1_h.hiq" = NA,
-                         # case 2 summary stats 
-                         "Case2_W.med" = NA,
-                         "Case2_W.loq" = NA,
-                         "Case2_W.hiq" = NA,
-                         "Case2_alphaW.med" = NA,
-                         "Case2_alphaW.loq" = NA,
-                         "Case2_alphaW.hiq" = NA,
-                         # "Case2_h.med" = NA,
-                         # "Case2_h.loq" = NA,
-                         # "Case2_h.hiq" = NA,
-                         # case 3 summary stats 
-                         "Case3_W.med" = NA,
-                         "Case3_W.loq" = NA,
-                         "Case3_W.hiq" = NA,
-                         "Case3_alphaW.med" = NA,
-                         "Case3_alphaW.loq" = NA,
-                         "Case3_alphaW.hiq" = NA,
-                         # "Case3_h.med" = NA,
-                         # "Case3_h.loq" = NA,
-                         # "Case3_h.hiq" = NA,
-                         # case 4 summary stats 
-                         "Case4_W.med" = NA,
-                         "Case4_W.loq" = NA,
-                         "Case4_W.hiq" = NA,
-                         "Case4_alphaW.med" = NA,
-                         "Case4_alphaW.loq" = NA,
-                         "Case4_alphaW.hiq" = NA,
-                         "Case4_partW.med" = NA,
-                         "Case4_partW.loq" = NA,
-                         "Case4_partW.hiq" = NA)
-    # "Case4_h.med" = NA,
-    # "Case4_h.loq" = NA,
-    # "Case4_h.hiq" = NA)
-  } else {
+  n_ppl <- yO %>% 
+    filter(Shehia == shehia,
+           Year == year,
+           pop == pop) %>% 
+    pull(n_ppl)
+  
     # Posterior predictions for case 1 runs
       abc_post_pred_case1 <- post_pred_data_gen(pars        = abc_run[[4]]$adj.values, 
                                                 fixed_pars  = c("h"=10, "r" = 1, "g" = 0.001),
@@ -128,8 +91,6 @@ abc_post_pred_checks <- bind_rows(lapply(1:length(abc_sims), function(sim){
                                         abc_post_pred_case2_sum,
                                         abc_post_pred_case3_sum,
                                         abc_post_pred_case4_sum))))
-    
-  }
   
   return(df.out)
   
