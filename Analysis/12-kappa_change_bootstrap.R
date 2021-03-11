@@ -96,7 +96,7 @@ boot_ests <- sapply(1:boot_samps, function(...){
 cl <- makeCluster(parallel::detectCores()-1)
 registerDoParallel(cl)
 
-boot_ests <- foreach(x            =1:nrow(boot_sweeps), 
+boot_ests <- foreach(x            = 1:nrow(boot_sweeps), 
                      .combine     = cbind,
                      .packages    = c("tidyverse", "geepack"),
                      .export      = c("get_boot_df", "get_boot_ests", "nboot",
