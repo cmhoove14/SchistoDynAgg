@@ -44,7 +44,7 @@ abc_obs_gen_comp_plot <- abc_obs_gen_comp %>%
                      breaks = c(0.01, 0.1, 1, 10, 100),
                      labels = c("0.01", "0.1", "1", "10", "100")) +
   scale_color_manual(values = c("#058dd6", "#cc4a49", "#7b6c7c", "#64a860")) +
-  facet_wrap(.~SumStat, ncol = 3) +
+  facet_grid(Case~SumStat) +
   theme_bw() +
   labs(x = "Observed value",
        y = "Generated value")
