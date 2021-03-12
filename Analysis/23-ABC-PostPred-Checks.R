@@ -18,8 +18,7 @@ abc_sims2 <- abc_sims[na.omit(abc_successes)]
 
 abc_post_pred_checks <- bind_rows(lapply(1:length(abc_sims2), function(sim){
   abc_run <- abc_sims2[[sim]]
-     <- yO$n_ppl[sim]
-  
+
   shehia <- as.character(abc_run[[1]])
   year   <- as.integer(abc_run[[2]])
   pop    <- as.character(abc_run[[3]])
