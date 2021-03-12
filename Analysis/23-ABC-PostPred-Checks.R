@@ -94,3 +94,6 @@ abc_post_pred_checks <- bind_rows(lapply(1:length(abc_sims2), function(sim){
   return(df.out)
   
 }))
+
+saveRDS(abc_post_pred_checks,
+        here::here("Data/Derived/abc_post_pred_checks.rds"))
