@@ -2,7 +2,7 @@
 % Please edit documentation in R/abc_worm_estimation_functions.R
 \name{post_pred_data_gen}
 \alias{post_pred_data_gen}
-\title{ABC Posterior Predictive Check}
+\title{ABC Posterior Predictive Check data generation}
 \usage{
 post_pred_data_gen(pars, fixed_pars, n_ppl, weights, data_gen_fx, n_reps)
 }
