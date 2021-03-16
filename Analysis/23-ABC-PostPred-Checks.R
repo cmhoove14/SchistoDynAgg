@@ -6,7 +6,7 @@ devtools::load_all()
 abc_sims <- readRDS(here::here("Data/Derived/abc_fit_ridge_log_4cases_hrg_fixed_1e+05iterations.rds"))
 yO <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
 
-n_post_pred_runs <- 10   # Posterior draws
+n_post_pred_runs <- 1000   # Posterior draws
 post_pred_quants <- c(0.025,0.25,0.5,0.75,0.975) #Quantiles for summaries
 
 # Get posterior summaries ----------------------
