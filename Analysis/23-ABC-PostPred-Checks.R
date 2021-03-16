@@ -26,6 +26,8 @@ clusterEvalQ(cl, devtools::load_all())
 abc_post_pred_checks <- foreach(
   x = 1:length(abc_sims2),
   .packages = c("tidyverse", "abc"),
+  .export = c("n_post_pred_runs", "abc_sims2", "post_pred_quants", "yO"),
+  .combine = rbind,
   .verbose = TRUE,
   .options.RNG = 7491
 ) %dorng% {

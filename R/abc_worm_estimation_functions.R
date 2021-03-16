@@ -751,6 +751,7 @@ abc_post_pred <- function(abc_sims_list, yO, n_post_pred_runs, sim){
   names(abc_post_pred_case1_sum) <- paste0("case1_",
                                            rep(c("E", "Ese", "Epos2n"), times = length(post_pred_quants)), "_",
                                            rep(post_pred_quants, each = 3))
+  rm("abc_post_pred_case1") ; gc()
   
   # Posterior predictions for case 2 runs
   abc_post_pred_case2 <- post_pred_data_gen(pars        = abc_run[[5]]$adj.values, 
@@ -764,6 +765,7 @@ abc_post_pred <- function(abc_sims_list, yO, n_post_pred_runs, sim){
   names(abc_post_pred_case2_sum) <- paste0("case2_", 
                                            rep(c("E", "Ese", "Epos2n"), times = length(post_pred_quants)), "_",
                                            rep(post_pred_quants, each = 3))
+  rm("abc_post_pred_case2") ; gc()
   
   # Posterior predictions for case 3 runs
   abc_post_pred_case3 <- post_pred_data_gen(pars        = abc_run[[6]]$adj.values, 
@@ -778,6 +780,7 @@ abc_post_pred <- function(abc_sims_list, yO, n_post_pred_runs, sim){
   names(abc_post_pred_case3_sum) <- paste0("case3_", 
                                            rep(c("E", "Ese", "Epos2n"), times = length(post_pred_quants)), "_",
                                            rep(post_pred_quants, each = 3))
+  rm("abc_post_pred_case3") ; gc()
   
   # Posterior predictions for case 4 runs
   abc_post_pred_case4 <- post_pred_data_gen(pars        = abc_run[[7]]$adj.values, 
@@ -791,8 +794,8 @@ abc_post_pred <- function(abc_sims_list, yO, n_post_pred_runs, sim){
   names(abc_post_pred_case4_sum) <- paste0("case4_", 
                                            rep(c("E", "Ese", "Epos2n"), times = length(post_pred_quants)), "_",
                                            rep(post_pred_quants, each = 3))
-  
-  rm(list = c("abc_post_pred_case1", "abc_post_pred_case2", "abc_post_pred_case3", "abc_post_pred_case4", "abc_run")) ; gc()
+
+  rm(list = c("abc_post_pred_case4", "abc_run")) ; gc()
   
   df.out <- cbind(data.frame("Shehia" = shehia, 
                              "Year" = year, 
