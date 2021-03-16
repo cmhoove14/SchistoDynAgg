@@ -30,7 +30,7 @@ abc_post_pred_checks <- foreach(
   .options.RNG = 7491
 ) %dorng% {
   
-  abc_post_pred(abc_sims2, yO, x)
+  abc_post_pred(abc_sims2, yO, n_post_pred_runs, x)
 
 }  
 

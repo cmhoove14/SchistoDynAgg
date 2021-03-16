@@ -4,12 +4,14 @@
 \alias{abc_post_pred}
 \title{ABC Posterior Predictive Check}
 \usage{
-abc_post_pred(abc_sims_list, yO, sim)
+abc_post_pred(abc_sims_list, yO, n_post_pred_runs, sim)
 }
 \arguments{
 \item{abc_sims_list}{list containing abc objects to conduct posterior predicitve checks}
 
 \item{yO}{observed data frame for matching shehia year and pop info}
+
+\item{n_post_pred_runs}{number of simulations to conduct with posterior}
 
 \item{sim}{numeric indicating which simulation to pull from `abc_sims_list` and conduct posterior predictive checks on}
 }

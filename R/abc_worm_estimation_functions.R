@@ -719,13 +719,14 @@ post_pred_data_gen <- function(pars, fixed_pars, n_ppl, weights, data_gen_fx, n_
 #' 
 #' @param abc_sims_list list containing abc objects to conduct posterior predicitve checks
 #' @param yO observed data frame for matching shehia year and pop info
+#' @param n_post_pred_runs number of simulations to conduct with posterior
 #' @param sim numeric indicating which simulation to pull from `abc_sims_list` and conduct posterior predictive checks on
 #' 
 #' @return matrix with dim n_reps by number of summary statistics (3 for this analysis)
 #' @export
 #'
 
-abc_post_pred <- function(abc_sims_list, yO, sim){
+abc_post_pred <- function(abc_sims_list, yO, n_post_pred_runs, sim){
   abc_run <- abc_sims_list[[sim]]
   
   shehia <- as.character(abc_run[[1]])
@@ -791,6 +792,7 @@ abc_post_pred <- function(abc_sims_list, yO, sim){
                                            rep(c("E", "Ese", "Epos2n"), times = length(post_pred_quants)), "_",
                                            rep(post_pred_quants, each = 3))
   
+  rm(list = c("abc_post_pred_case1", "abc_post_pred_case2", "abc_post_pred_case3", "abc_post_pred_case4", "abc_run")) ; gc()
   
   df.out <- cbind(data.frame("Shehia" = shehia, 
                              "Year" = year, 
