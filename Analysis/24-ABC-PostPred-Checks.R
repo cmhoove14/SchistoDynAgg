@@ -8,9 +8,6 @@ yO <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
 
 post_pred_quants <- c(0.025,0.25,0.5,0.75,0.975) #Quantiles for summaries
 
-post_pred_vars <- expand.grid("Case" = c("case1", "case2", "case3", "case4"),
-                              "SumStat" = c("E", "E_SE", "Pos2n"))
-
 n_cores <- parallel::detectCores()
 cl <- parallel::makeCluster(n_cores)
 registerDoParallel(cl)
@@ -20,7 +17,7 @@ clusterEvalQ(cl, devtools::load_all())
 abc_post_pred_checks <- foreach(
   x = 1:length(abc_posts),
   .packages = c("tidyverse", "abc"),
-  .export = c("post_pred_vars", "abc_posts", "post_pred_quants", "yO"),
+  .export = c("abc_posts", "post_pred_quants", "yO"),
   .combine = rbind,
   .verbose = TRUE,
   .options.RNG = 7491
