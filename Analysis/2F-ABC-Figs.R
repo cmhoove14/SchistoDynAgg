@@ -6,12 +6,12 @@ library(patchwork)
 
 devtools::load_all()
 
-load(here::here("Data/Derived/abc_processed_results.Rdata"))
+load(here::here("Data/Derived/abc_processed_results_1e+05.Rdata"))
 
 # Case1 PLot ----------------------
 case1_gee <- geeglm(log(obsalphaW.med) ~ log(obsW.med), id = as.factor(Shehia),
                     family = "gaussian", corstr = "unstructured",
-                    weights = 1/(obsalphaW.hiq-obsalphaW.loq),
+                    #weights = 1/(obsalphaW.hiq-obsalphaW.loq),
                     data = abc_fin_df_case_long  %>% filter(Case=="Case1" & pop == "Comm"))
 
 case1_gee_coef1 <- coef(case1_gee)[1]

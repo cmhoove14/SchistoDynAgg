@@ -9,5 +9,6 @@
 # 
 Rscript Analysis/0-Data-Process.R  
 Rscript Analysis/21-ABC-Worm-Burden-Estimation.R  
-Rscript Analysis/22-ABC-Sims-PostProcess.R  
-Rscript Analysis/23-ABC-PostPred-Checks.R  
+Rscript Analysis/22-ABC-Posteriors.R  
+Rscript Analysis/23-ABC-Mod-Comps.R  
+Rscript Analysis/24-ABC-PostPred-Checks.R  

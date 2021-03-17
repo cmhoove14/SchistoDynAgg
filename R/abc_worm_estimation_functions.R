@@ -610,34 +610,37 @@ gen_case4_pars <- function(iterations,
     dat4 <- t(apply(X = pars4, 1, gen_case4_data, n = obs_data[["n_ppl"]]))
 
   out_init <- tryCatch({
-  # Use abc to get posteriors with ridge regression correction
+  # Use abc to get posteriors with no correction. Was using ridge regression, but this was overkill for final approach and led to some estimates being "corrected" into unreasonable parameter space
     abc1 <- abc(target = obs_sum,
                 param = pars12[,1:2],  # Mean and dispersion parameter
                 sumstat = dat1[,1:3],  # Three summary stats
                 tol = 100/iterations,
-                transf = "log",
-                method = "ridge")
+                #transf = "log",
+                #method = "ridge",
+                method = "rejection")
 
     abc2 <- abc(target = obs_sum,
                 param = pars12[,1:2],  # Mean and dispersion parameter
                 sumstat = dat2[,1:3],  # Three summary stats
                 tol = 100/iterations,
-                transf = "log",
-                method = "ridge")
+                #transf = "log",
+                #method = "ridge",
+                method = "rejection")
   
     abc3 <- abc(target = obs_sum,
                 param = pars3[,1:2],   # Mean and dispersion of cercarial exposure
                 sumstat = dat3[,1:3],  # Three summary stats
                 tol = 100/iterations,
-                transf = "log",
-                method = "ridge")
+                #transf = "log",
+                #method = "ridge",
+                method = "rejection")
 
     abc4 <- abc(target = obs_sum,
                 param = pars4[,1:3],   # Mean and dispersion parameters and partitioning parameter
                 sumstat = dat4[,1:3],  # Three summary stats
-                tol = 100/iterations,
-                transf = "log",
-                method = "ridge")
+                #transf = "log",
+                #method = "ridge",
+                method = "rejection")
     
         
     abc_postpr <- postpr(target = obs_sum,
@@ -676,32 +679,29 @@ gen_case4_pars <- function(iterations,
 #' 
 #' @description Generate data from parameter posterior distributions and compare to observed
 #' 
-#' @param pars vector of parameter values from `abc` that reach tolerance. Can be adjusted or unadjusted
+#' @param posteriors Matrix of posteriors
 #' @param fixed_pars vector of parameters needed for data generation but not drawn from posterior distribution
 #' @param n_ppl number of people in community to generate data for
-#' @param weights vector weights for each parameter set from `abc`
 #' @param data_gen_fx data generation function (e.g. gen_case1_data; see above)
-#' @param n_reps number of datasets to generate
 #' 
 #' @return matrix with dim n_reps by number of summary statistics (3 for this analysis)
 #' @export
 #'
 
-post_pred_data_gen <- function(pars, fixed_pars, n_ppl, weights, data_gen_fx, n_reps){
-  samp <- sample(x       = 1:nrow(pars), 
-                 size    = n_reps, 
-                 replace = TRUE, 
-                 prob    = weights)
+post_pred_data_gen <- function(posteriors, fixed_pars, n_ppl, data_gen_fx){
   
-  out <- t(sapply(1:n_reps, function(p){
-    use_pars <- c(pars[samp[p],], fixed_pars)
-   
-    gen_data <- data_gen_fx(pars = use_pars,n = n_ppl)
+  out <- apply(posteriors, 1, function(p){
+    use_pars <- c(p, fixed_pars)
     
-    out <- gen_data[1:3]
+    gen_data <- data_gen_fx(pars = use_pars,
+                            n    = n_ppl)
     
-    return(out)
-  }))
+    gen_data[1:3]
+    
+  })
+
+  return(out)
+
 }
 
 
