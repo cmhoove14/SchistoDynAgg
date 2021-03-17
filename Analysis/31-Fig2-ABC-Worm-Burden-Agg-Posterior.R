@@ -6,7 +6,7 @@ library(patchwork)
 
 devtools::load_all()
 
-load(here::here("Data/Derived/abc_processed_results_1e+05.Rdata"))
+abc_posts <- readRDS(here::here("Data/Derived/ABC_Weighted_Posteriors.rds"))
 
 # Case1 PLot ----------------------
 case1_gee <- geeglm(log(obsalphaW.med) ~ log(obsW.med), id = as.factor(Shehia),
