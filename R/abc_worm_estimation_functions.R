@@ -696,7 +696,7 @@ post_pred_data_gen <- function(posteriors, fixed_pars, n_ppl, data_gen_fx){
     gen_data <- data_gen_fx(pars = use_pars,
                             n    = n_ppl)
     
-    gen_data[1:3]
+    gen_data[1:6]
     
   })
 
