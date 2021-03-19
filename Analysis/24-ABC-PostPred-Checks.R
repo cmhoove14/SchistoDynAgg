@@ -15,7 +15,7 @@ registerDoParallel(cl)
 clusterEvalQ(cl, devtools::load_all())
 
 abc_post_pred_checks <- foreach(
-  x = 1:length(abc_posts),
+  x = 1:nrow(abc_posts),
   .packages = c("tidyverse", "abc"),
   .export = c("abc_posts", "post_pred_quants", "yO"),
   .combine = rbind,
