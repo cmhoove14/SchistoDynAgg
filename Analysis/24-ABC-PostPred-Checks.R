@@ -41,18 +41,22 @@ abc_post_pred_checks <- foreach(
   
   abc_post_pred_case1_sum <- as.data.frame(matrixStats::rowQuantiles(x     = abc_post_pred_case1, 
                                                                      probs = post_pred_quants,
-                                                                     na.rm = T)) %>% 
+                                                                     na.rm = T))
+  case1_0s <- sum(abc_post_pred_case1[1,] == 0)
+  
+  abc_post_pred_case1_df <- abc_post_pred_case1_sum %>% 
     rownames_to_column() %>% 
     rename("SumStat" = rowname,
-           "q025" = `2.5%`,
-           "q25" = `25%`,
-           "q5" = `50%`,
-           "q75" = `75%`,
-           "q975" = `97.5%`) %>% 
-    mutate("Case" = "case1",
-           "Shehia" = SH, 
-           "Year" = YR, 
-           "Pop" = POP)
+           "q025"    = `2.5%`,
+           "q25"     = `25%`,
+           "q5"      = `50%`,
+           "q75"     = `75%`,
+           "q975"    = `97.5%`) %>% 
+    mutate("Case"    = "case1",
+           "Shehia"  = SH, 
+           "Year"    = YR, 
+           "Pop"     = POP,
+           "n_0s"    = case1_0s)
   
   rm("abc_post_pred_case1") ; gc()
   
@@ -64,18 +68,22 @@ abc_post_pred_checks <- foreach(
   
   abc_post_pred_case2_sum <- as.data.frame(matrixStats::rowQuantiles(x     = abc_post_pred_case2, 
                                                                      probs = post_pred_quants,
-                                                                     na.rm = T)) %>% 
+                                                                     na.rm = T))
+  case2_0s <- sum(abc_post_pred_case2[1,] == 0)
+  
+  abc_post_pred_case2_df <- abc_post_pred_case2_sum %>% 
     rownames_to_column() %>% 
     rename("SumStat" = rowname,
-           "q025" = `2.5%`,
-           "q25" = `25%`,
-           "q5" = `50%`,
-           "q75" = `75%`,
-           "q975" = `97.5%`) %>% 
-    mutate("Case" = "case2",
-           "Shehia" = SH, 
-           "Year" = YR, 
-           "Pop" = POP)
+           "q025"    = `2.5%`,
+           "q25"     = `25%`,
+           "q5"      = `50%`,
+           "q75"     = `75%`,
+           "q975"    = `97.5%`) %>% 
+    mutate("Case"    = "case2",
+           "Shehia"  = SH, 
+           "Year"    = YR, 
+           "Pop"     = POP,
+           "n_0s"    = case2_0s)
   
   rm("abc_post_pred_case2") ; gc()
   
@@ -88,18 +96,23 @@ abc_post_pred_checks <- foreach(
   
   abc_post_pred_case3_sum <- as.data.frame(matrixStats::rowQuantiles(x     = abc_post_pred_case3, 
                                                                      probs = post_pred_quants,
-                                                                     na.rm = T)) %>% 
+                                                                     na.rm = T))
+  
+  case3_0s <- sum(abc_post_pred_case3[1,] == 0)
+  
+  abc_post_pred_case3_df <- abc_post_pred_case3_sum %>% 
     rownames_to_column() %>% 
     rename("SumStat" = rowname,
-           "q025" = `2.5%`,
-           "q25" = `25%`,
-           "q5" = `50%`,
-           "q75" = `75%`,
-           "q975" = `97.5%`) %>% 
-    mutate("Case" = "case3",
-           "Shehia" = SH, 
-           "Year" = YR, 
-           "Pop" = POP)
+           "q025"    = `2.5%`,
+           "q25"     = `25%`,
+           "q5"      = `50%`,
+           "q75"     = `75%`,
+           "q975"    = `97.5%`) %>% 
+    mutate("Case"    = "case3",
+           "Shehia"  = SH, 
+           "Year"    = YR, 
+           "Pop"     = POP,
+           "n_0s"    = case3_0s)
   
   rm("abc_post_pred_case3") ; gc()
   
@@ -111,25 +124,30 @@ abc_post_pred_checks <- foreach(
   
   abc_post_pred_case4_sum <- as.data.frame(matrixStats::rowQuantiles(x     = abc_post_pred_case4, 
                                                                      probs = post_pred_quants,
-                                                                     na.rm = T)) %>% 
+                                                                     na.rm = T))
+  
+  case4_0s <- sum(abc_post_pred_case4[1,] == 0)
+  
+  abc_post_pred_case4_df <- abc_post_pred_case4_sum %>% 
     rownames_to_column() %>% 
     rename("SumStat" = rowname,
-           "q025" = `2.5%`,
-           "q25" = `25%`,
-           "q5" = `50%`,
-           "q75" = `75%`,
-           "q975" = `97.5%`) %>% 
-    mutate("Case" = "case4",
-           "Shehia" = SH, 
-           "Year" = YR, 
-           "Pop" = POP)
+           "q025"    = `2.5%`,
+           "q25"     = `25%`,
+           "q5"      = `50%`,
+           "q75"     = `75%`,
+           "q975"    = `97.5%`) %>% 
+    mutate("Case"    = "case4",
+           "Shehia"  = SH, 
+           "Year"    = YR, 
+           "Pop"     = POP,
+           "n_0s"    = case4_0s)
   
   rm(list = c("abc_post_pred_case4")) ; gc()
   
-  df.out <- rbind(abc_post_pred_case1_sum,
-                  abc_post_pred_case2_sum,
-                  abc_post_pred_case3_sum,
-                  abc_post_pred_case4_sum) %>% 
+  df.out <- rbind(abc_post_pred_case1_df,
+                  abc_post_pred_case2_df,
+                  abc_post_pred_case3_df,
+                  abc_post_pred_case4_df) %>% 
     relocate(Shehia, Year, Pop, Case) %>% 
     mutate(IQR = q75 - q25)
   
