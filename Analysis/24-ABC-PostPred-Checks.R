@@ -39,7 +39,9 @@ abc_post_pred_checks <- foreach(
                                             n_ppl       = n_ppl,
                                             data_gen_fx = gen_case1_data)
   
-  abc_post_pred_case1_sum <- as.data.frame(matrixStats::rowQuantiles(abc_post_pred_case1, probs = post_pred_quants)) %>% 
+  abc_post_pred_case1_sum <- as.data.frame(matrixStats::rowQuantiles(x     = abc_post_pred_case1, 
+                                                                     probs = post_pred_quants,
+                                                                     na.rm = T)) %>% 
     rownames_to_column() %>% 
     rename("SumStat" = rowname,
            "q025" = `2.5%`,
@@ -60,7 +62,9 @@ abc_post_pred_checks <- foreach(
                                             n_ppl       = n_ppl,
                                             data_gen_fx = gen_case2_data)
   
-  abc_post_pred_case2_sum <- as.data.frame(matrixStats::rowQuantiles(abc_post_pred_case2, probs = post_pred_quants)) %>% 
+  abc_post_pred_case2_sum <- as.data.frame(matrixStats::rowQuantiles(x     = abc_post_pred_case2, 
+                                                                     probs = post_pred_quants,
+                                                                     na.rm = T)) %>% 
     rownames_to_column() %>% 
     rename("SumStat" = rowname,
            "q025" = `2.5%`,
@@ -82,7 +86,9 @@ abc_post_pred_checks <- foreach(
                                             n_ppl       = n_ppl,
                                             data_gen_fx = gen_case3_data)
   
-  abc_post_pred_case3_sum <- as.data.frame(matrixStats::rowQuantiles(abc_post_pred_case3, probs = post_pred_quants)) %>% 
+  abc_post_pred_case3_sum <- as.data.frame(matrixStats::rowQuantiles(x     = abc_post_pred_case3, 
+                                                                     probs = post_pred_quants,
+                                                                     na.rm = T)) %>% 
     rownames_to_column() %>% 
     rename("SumStat" = rowname,
            "q025" = `2.5%`,
@@ -103,7 +109,9 @@ abc_post_pred_checks <- foreach(
                                             n_ppl       = n_ppl,
                                             data_gen_fx = gen_case4_data)
   
-  abc_post_pred_case4_sum <- as.data.frame(matrixStats::rowQuantiles(abc_post_pred_case4, probs = post_pred_quants)) %>% 
+  abc_post_pred_case4_sum <- as.data.frame(matrixStats::rowQuantiles(x     = abc_post_pred_case4, 
+                                                                     probs = post_pred_quants,
+                                                                     na.rm = T)) %>% 
     rownames_to_column() %>% 
     rename("SumStat" = rowname,
            "q025" = `2.5%`,
