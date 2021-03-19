@@ -190,6 +190,7 @@ gen_case1_data <- function(pars, n){
            E_pos2n = E_pos2n,
            mean_W = mean(Ni),
            var_W = var(Ni),
+           kap_W = mle_kap(Ni),
            mean_Phi = mean(Xi),
            var_Phi = var(Xi),
            prob_Phi = (sum(Xi)*2)/sum(Ni),
@@ -244,6 +245,7 @@ gen_case2_data <- function(pars, n){
            E_pos2n = E_pos2n,
            mean_W = mean(Ni),
            var_W = var(Ni),
+           kap_W = mle_kap(Ni),
            mean_Phi = mean(Xi),
            var_Phi = var(Xi),
            prob_Phi = (sum(Xi)*2)/sum(Ni),
@@ -359,6 +361,7 @@ gen_case3_data <- function(pars, n){
            E_pos2n = E_pos2n,
            mean_W = mean(Ni),
            var_W = var(Ni),
+           kap_W = mle_kap(Ni),
            mean_Phi = mean(Xi),
            var_Phi = var(Xi),
            prob_Phi = (sum(Xi)*2)/sum(Ni),
@@ -482,6 +485,7 @@ gen_case4_data <- function(pars, n){
            E_pos2n = E_pos2n,
            mean_W = mean(Ni),
            var_W = var(Ni),
+           kap_W = mle_kap(Ni),
            mean_Phi = mean(Xi),
            var_Phi = var(Xi),
            prob_Phi = (sum(Xi)*2)/sum(Ni),
@@ -696,7 +700,7 @@ post_pred_data_gen <- function(posteriors, fixed_pars, n_ppl, data_gen_fx){
     gen_data <- data_gen_fx(pars = use_pars,
                             n    = n_ppl)
     
-    gen_data[1:9]
+    gen_data[1:10]
     
   })
 
