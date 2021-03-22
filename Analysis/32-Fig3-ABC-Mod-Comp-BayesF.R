@@ -6,16 +6,33 @@ library(patchwork)
 
 devtools::load_all()
 
-load(here::here("Data/Derived/abc_processed_results.Rdata"))
+abc_bayesFs <- readRDS(here::here("Data/Derived/abc_mod_comps.rds"))
+yO          <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
 
-# Bayes factors (Comparative estimate of model performance) for each case across observed egg burden -------------
-abc_bayesF_comp <- abc_fin_df_case_long %>% 
-  filter(Case %in% c("IIItoI", "IIItoII", "IItoI",
-                     "IVtoI", "IVtoII", "IVtoIII") & pop == "Comm") %>% 
+abc_bayes_comps <- abc_bayesFs %>% 
+  left_join(yO %>% mutate(Isl_Shehia = paste(Isl, Shehia,sep = "_")),
+            by = c("Shehia" = "Isl_Shehia"))
+
+# Bayes factors (Comparative estimate of model performance) in reference to case 1 -------------
+abc_bayesF_comp1 <- abc_bayes_comps %>% 
+  filter(Pop == "Comm") %>% 
+  
+  
+  
+  # TODO: Make sure this works with actual input data
+  dplyr::select(c("IItoI_BayesF", "IIItoI_BayesF", "IVtoI_BayesF")) %>% 
+  pivot_longer(cols      = c("IItoI_BayesF", "IIItoI_BayesF", "IVtoI_BayesF"),
+               names_to  = "Case",
+               values_to = "BayesF") %>% 
+  
+  
+  
+  
+  
   ggplot(aes(x = UF_mean, y = BayesF, col = Case)) +
   stat_smooth() +
   geom_hline(yintercept = 1) +
-  geom_point(alpha = 0.5) +
+  geom_point(alpha = 0.7) +
   scale_y_continuous(trans = "log",
                      breaks = c(0.1, 1, 10, 100, 1000),
                      labels = c("0.1", "1", "10", "100", "1000"),
