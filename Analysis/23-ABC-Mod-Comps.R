@@ -55,12 +55,22 @@ abc_mod_comp <- do.call(rbind, lapply(abc_sims2, function(abc_run){
                            "Case2_Post.Prob" = Probs[2],
                            "Case3_Post.Prob" = Probs[3],
                            "Case4_Post.Prob" = Probs[4],
-                           "IIItoI_BayesF" = BayesF[3,1],
-                           "IIItoII_BayesF" = BayesF[3,2],
+                           # Reference to case 1
                            "IItoI_BayesF" = BayesF[2,1],
+                           "IIItoI_BayesF" = BayesF[3,1],
                            "IVtoI_BayesF" =  BayesF[4,1],
+                           # Reference to case 2
+                           "ItoII_BayesF" = BayesF[1,2],
+                           "IIItoII_BayesF" = BayesF[3,2],
                            "IVtoII_BayesF" =  BayesF[4,2],
-                           "IVtoIII_BayesF" =  BayesF[4,3])
+                           # Reference to case 3
+                           "ItoIII_BayesF" =  BayesF[1,3],
+                           "IItoIII_BayesF" =  BayesF[2,3],
+                           "IVtoIII_BayesF" =  BayesF[4,3],
+                           # Reference to case 4 (redundant, but ok),
+                           "ItoIV_BayesF" =  BayesF[1,4],
+                           "IItoIV_BayesF" =  BayesF[2,4],
+                           "IIItoIV_BayesF" =  BayesF[3,4])
       
   #   }
   #   
