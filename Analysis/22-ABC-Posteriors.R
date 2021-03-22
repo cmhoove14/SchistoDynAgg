@@ -3,6 +3,19 @@ library(abc)
 
 devtools::load_all()
 
+# Get options passed from BASH -----------------
+# Number of weighted draws from initial posterior to construct final posterior  
+opts <- commandArgs(TRUE)
+
+if(length(opts) > 0){
+  post_samp_size <- as.numeric(opts[1])
+} else {
+  post_samp_size <- 1000
+  
+}
+
+# Load data and additional setup ----------------
+
 abc_sims <- readRDS(here::here("Data/Derived/abc_fit_rejection_4cases_hrg_fixed_1e+05iterations.rds"))
 yO <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
 
@@ -12,9 +25,6 @@ yO <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
   })
   
   abc_sims2 <- abc_sims[na.omit(abc_successes)]
-  
-# Number of weighted draws from initial posterior to construct final posterior  
-  post_samp_size <- 1000
   
 # Get posterior summaries ----------------------
 abc_posteriors <- bind_rows(lapply(abc_sims2, function(abc_run){
