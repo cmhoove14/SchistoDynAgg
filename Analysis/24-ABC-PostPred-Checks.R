@@ -22,13 +22,15 @@ abc_post_pred_checks <- foreach(
   .verbose = TRUE,
   .options.RNG = 7491
 ) %dorng% {
-  
-  SH   <- as.character(abc_posts[[1]][[x]])
-  YR   <- as.integer(abc_posts[[2]][[x]])
-  POP  <- as.character(abc_posts[[3]][[x]])
+  Isl_Shehia <- str_split(as.character(abc_posts[[1]][[x]]), "_", simplify = T)
+  ISL        <- Isl_Shehia[1]
+  SH         <- Isl_Shehia[2]
+  YR         <- as.integer(abc_posts[[2]][[x]])
+  POP        <- as.character(abc_posts[[3]][[x]])
   
   n_ppl <- yO %>% 
-    filter(Shehia == SH,
+    filter(Isl    == ISL,
+           Shehia == SH,
            Year   == YR,
            pop    == POP) %>% 
     pull(n_ppl)
@@ -53,6 +55,7 @@ abc_post_pred_checks <- foreach(
            "q75"     = `75%`,
            "q975"    = `97.5%`) %>% 
     mutate("Case"    = "case1",
+           "Isl"     = ISL,
            "Shehia"  = SH, 
            "Year"    = YR, 
            "Pop"     = POP,
@@ -80,6 +83,7 @@ abc_post_pred_checks <- foreach(
            "q75"     = `75%`,
            "q975"    = `97.5%`) %>% 
     mutate("Case"    = "case2",
+           "Isl"     = ISL,
            "Shehia"  = SH, 
            "Year"    = YR, 
            "Pop"     = POP,
@@ -109,6 +113,7 @@ abc_post_pred_checks <- foreach(
            "q75"     = `75%`,
            "q975"    = `97.5%`) %>% 
     mutate("Case"    = "case3",
+           "Isl"     = ISL,
            "Shehia"  = SH, 
            "Year"    = YR, 
            "Pop"     = POP,
@@ -137,6 +142,7 @@ abc_post_pred_checks <- foreach(
            "q75"     = `75%`,
            "q975"    = `97.5%`) %>% 
     mutate("Case"    = "case4",
+           "Isl"     = ISL,
            "Shehia"  = SH, 
            "Year"    = YR, 
            "Pop"     = POP,
