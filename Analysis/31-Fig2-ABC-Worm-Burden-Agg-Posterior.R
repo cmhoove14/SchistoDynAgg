@@ -8,20 +8,18 @@ devtools::load_all()
 
 abc_post_preds_kapW <- readRDS(here::here("Data/Derived/abc_post_pred_checks.rds")) %>% 
   filter(SumStat %in% c("mean_W", "var_W","kap_W")) %>% 
+  # Temp solution to remove duplicates
+  filter(!Shehia %in% c("KINYASINI", "MBUZINI")) %>% 
   #mutate(row = row_number()) %>% 
   pivot_wider(names_from = SumStat,
               values_from = q025:IQR,
-              values_fn = length,
               names_sep = "_")
 
-yO <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
-
-
 # Case1 PLot ----------------------
-case1_gee <- geeglm(log(obsalphaW.med) ~ log(obsW.med), id = as.factor(Shehia),
+case1_gee <- geeglm(log(q5_kap_W^-1) ~ log(q5_mean_W), id = as.factor(Shehia),
                     family = "gaussian", corstr = "unstructured",
-                    #weights = 1/(obsalphaW.hiq-obsalphaW.loq),
-                    data = abc_fin_df_case_long  %>% filter(Case=="Case1" & pop == "Comm"))
+                    weights = 1/IQR_kap_W,
+                    data = abc_post_preds_kapW  %>% filter(Case=="case1" & Pop == "Comm"))
 
 case1_gee_coef1 <- coef(case1_gee)[1]
 case1_gee_coef2 <- coef(case1_gee)[2]
@@ -31,12 +29,12 @@ case1_gee_fx <- function(W){
 }
 
 
-kap_W_case1_plot <- abc_fin_df_case_long %>%
-  filter(Case=="Case1" & pop == "Comm") %>% 
-  ggplot(aes(x = obsW.med,
-             y = obsalphaW.med^-1)) +
-  geom_point(aes(size = 1/(obsalphaW.hiq-obsalphaW.loq)),
-             col = "#058dd6",
+kap_W_case1_plot <- abc_post_preds_kapW %>%
+  filter(Case=="case1" & Pop == "Comm") %>% 
+  ggplot(aes(x = q5_mean_W,
+             y = q5_kap_W)) +
+  geom_point(aes(size = 1/IQR_kap_W),
+             col = "#3b46ca",
              alpha = 0.3,
              show.legend = FALSE) +
   #stat_smooth(col = "black") +
@@ -48,8 +46,7 @@ kap_W_case1_plot <- abc_fin_df_case_long %>%
   scale_x_continuous(trans = "log",
                      breaks = c(0.01, 0.1, 1, 10, 100),
                      labels = c("0.01", "0.1", "1", "10", "100"),
-                     limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
-                                max(abc_fin_df_case_long$obsW.med, na.rm = T))) +
+                     limits = c(0.005, max(abc_post_preds_kapW$q5_mean_W))) +
   scale_y_continuous(trans = "log",
                      breaks = c(0.001,0.01, 0.1, 1, 10, 100),
                      labels = c("0.001","0.01", "0.1", "1", "10", "100"),
@@ -58,10 +55,10 @@ kap_W_case1_plot <- abc_fin_df_case_long %>%
        title = "A")
 
 # Case2 PLot ----------------------
-case2_gee <- geeglm(log(obsalphaW.med) ~ log(obsW.med), id = as.factor(Shehia),
+case2_gee <- geeglm(log(q5_kap_W^-1) ~ log(q5_mean_W), id = as.factor(Shehia),
                     family = "gaussian", corstr = "unstructured",
-                    weights = 1/(obsalphaW.hiq-obsalphaW.loq),
-                    data = abc_fin_df_case_long  %>% filter(Case=="Case2" & pop == "Comm"))
+                    weights = 1/IQR_kap_W,
+                    data = abc_post_preds_kapW  %>% filter(Case=="case2" & Pop == "Comm"))
 
 case2_gee_coef1 <- coef(case2_gee)[1]
 case2_gee_coef2 <- coef(case2_gee)[2]
@@ -71,12 +68,12 @@ case2_gee_fx <- function(W){
 }
 
 
-kap_W_case2_plot <- abc_fin_df_case_long %>%
-  filter(Case=="Case2" & pop == "Comm") %>% 
-  ggplot(aes(x = obsW.med,
-             y = obsalphaW.med^-1)) +
-  geom_point(aes(size = 1/(obsalphaW.hiq-obsalphaW.loq)),
-             col = "#cc4a49",
+kap_W_case2_plot <- abc_post_preds_kapW %>%
+  filter(Case=="case2" & Pop == "Comm") %>% 
+  ggplot(aes(x = q5_mean_W,
+             y = q5_kap_W)) +
+  geom_point(aes(size = 1/IQR_kap_W),
+             col = "#fc45b7",
              alpha = 0.3,
              show.legend = FALSE) +
   #stat_smooth(col = "black") +
@@ -91,8 +88,7 @@ kap_W_case2_plot <- abc_fin_df_case_long %>%
   scale_x_continuous(trans = "log",
                      breaks = c(0.01, 0.1, 1, 10, 100),
                      labels = c("0.01", "0.1", "1", "10", "100"),
-                     limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
-                                max(abc_fin_df_case_long$obsW.med, na.rm = T))) +
+                     limits = c(0.005, max(abc_post_preds_kapW$q5_mean_W))) +
   scale_y_continuous(trans = "log",
                      breaks = c(0.001,0.01, 0.1, 1, 10, 100),
                      labels = c("0.001","0.01", "0.1", "1", "10", "100"),
@@ -100,10 +96,10 @@ kap_W_case2_plot <- abc_fin_df_case_long %>%
   labs(title = "B")
 
 # Case3 PLot ----------------------
-case3_gee <- geeglm(log(obsalphaW.med) ~ log(obsW.med), id = as.factor(Shehia),
+case3_gee <- geeglm(log(q5_kap_W^-1) ~ log(q5_mean_W), id = as.factor(Shehia),
                     family = "gaussian", corstr = "unstructured",
-                    weights = 1/(obsalphaW.hiq-obsalphaW.loq),
-                    data = abc_fin_df_case_long  %>% filter(Case=="Case3" & pop == "Comm"))
+                    weights = 1/IQR_kap_W,
+                    data = abc_post_preds_kapW  %>% filter(Case=="case3" & Pop == "Comm" & q5_mean_W > 0))
 
 case3_gee_coef1 <- coef(case3_gee)[1]
 case3_gee_coef2 <- coef(case3_gee)[2]
@@ -112,12 +108,12 @@ case3_gee_fx <- function(W){
   exp(case3_gee_coef1+case3_gee_coef2*log(W))^-1
 }
 
-kap_W_case3_plot <- abc_fin_df_case_long %>%
-  filter(Case=="Case3" & pop == "Comm") %>% 
-  ggplot(aes(x = obsW.med,
-             y = obsalphaW.med^-1)) +
-  geom_point(aes(size = 1/(obsalphaW.hiq-obsalphaW.loq)),
-             col = "#7b6c7c",
+kap_W_case3_plot <- abc_post_preds_kapW %>%
+  filter(Case=="case3" & Pop == "Comm") %>% 
+  ggplot(aes(x = q5_mean_W,
+             y = q5_kap_W)) +
+  geom_point(aes(size = 1/IQR_kap_W),
+             col = "#bc86af",
              alpha = 0.3,
              show.legend = FALSE) +
   #stat_smooth(col = "black") +
@@ -128,8 +124,7 @@ kap_W_case3_plot <- abc_fin_df_case_long %>%
   scale_x_continuous(trans = "log",
                      breaks = c(0.01, 0.1, 1, 10, 100),
                      labels = c("0.01", "0.1", "1", "10", "100"),
-                     limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
-                                max(abc_fin_df_case_long$obsW.med, na.rm = T))) +
+                     limits = c(0.005, max(abc_post_preds_kapW$q5_mean_W))) +
   scale_y_continuous(trans = "log",
                      breaks = c(0.001,0.01, 0.1, 1, 10, 100),
                      labels = c("0.001","0.01", "0.1", "1", "10", "100"),
@@ -139,10 +134,10 @@ kap_W_case3_plot <- abc_fin_df_case_long %>%
        title = "C")
 
 # Case4 PLot ----------------------
-case4_gee <- geeglm(log(obsalphaW.med) ~ log(obsW.med), id = as.factor(Shehia),
+case4_gee <- geeglm(log(q5_kap_W^-1) ~ log(q5_mean_W), id = as.factor(Shehia),
                     family = "gaussian", corstr = "unstructured",
-                    weights = 1/(obsalphaW.hiq-obsalphaW.loq),
-                    data = abc_fin_df_case_long  %>% filter(Case=="Case4" & pop == "Comm"))
+                    weights = 1/IQR_kap_W,
+                    data = abc_post_preds_kapW  %>% filter(Case=="case4" & Pop == "Comm"))
 
 case4_gee_coef1 <- coef(case4_gee)[1]
 case4_gee_coef2 <- coef(case4_gee)[2]
@@ -151,12 +146,12 @@ case4_gee_fx <- function(W){
   exp(case4_gee_coef1+case4_gee_coef2*log(W))^-1
 }
 
-kap_W_case4_plot <- abc_fin_df_case_long %>%
-  filter(Case=="Case4" & pop == "Comm") %>% 
-  ggplot(aes(x = obsW.med,
-             y = obsalphaW.med^-1)) +
-  geom_point(aes(size = 1/(obsalphaW.hiq-obsalphaW.loq)),
-             col = "#64a860",
+kap_W_case4_plot <- abc_post_preds_kapW %>%
+  filter(Case=="case4" & Pop == "Comm") %>% 
+  ggplot(aes(x = q5_mean_W,
+             y = q5_kap_W)) +
+  geom_point(aes(size = 1/IQR_kap_W),
+             col = "#009d23",
              alpha = 0.3,
              show.legend = FALSE) +
   #stat_smooth(col = "black") +
@@ -171,8 +166,7 @@ kap_W_case4_plot <- abc_fin_df_case_long %>%
   scale_x_continuous(trans = "log",
                      breaks = c(0.01, 0.1, 1, 10, 100),
                      labels = c("0.01", "0.1", "1", "10", "100"),
-                     limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
-                                max(abc_fin_df_case_long$obsW.med, na.rm = T))) +
+                     limits = c(0.005, max(abc_post_preds_kapW$q5_mean_W))) +
   scale_y_continuous(trans = "log",
                      breaks = c(0.001,0.01, 0.1, 1, 10, 100),
                      labels = c("0.001","0.01", "0.1", "1", "10", "100"),
