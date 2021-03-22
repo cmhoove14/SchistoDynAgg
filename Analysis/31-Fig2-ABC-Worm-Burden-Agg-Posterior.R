@@ -6,7 +6,14 @@ library(patchwork)
 
 devtools::load_all()
 
-abc_post_preds <- readRDS(here::here("Data/Derived/abc_post_pred_checks.rds"))
+abc_post_preds_kapW <- readRDS(here::here("Data/Derived/abc_post_pred_checks.rds")) %>% 
+  filter(SumStat %in% c("mean_W", "var_W","kap_W")) %>% 
+  #mutate(row = row_number()) %>% 
+  pivot_wider(names_from = SumStat,
+              values_from = q025:IQR,
+              values_fn = length,
+              names_sep = "_")
+
 yO <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
 
 
