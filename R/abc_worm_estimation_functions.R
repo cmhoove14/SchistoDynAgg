@@ -668,8 +668,10 @@ gen_case4_pars <- function(iterations,
     list(cond)
   })  
 
-    return(c(list(obs_data[["Shehia"]], obs_data[["Year"]]), obs_data[["pop"]],
-             out_init))
+  return(c(list(paste(obs_data[["Isl"]], obs_data[["Shehia"]], sep = "_"), 
+                obs_data[["Year"]], 
+                obs_data[["pop"]]),
+           out_init))
 
   }
 
