@@ -642,6 +642,7 @@ gen_case4_pars <- function(iterations,
     abc4 <- abc(target = obs_sum,
                 param = pars4[,1:3],   # Mean and dispersion parameters and partitioning parameter
                 sumstat = dat4[,1:3],  # Three summary stats
+                tol = 100/iterations,
                 #transf = "log",
                 #method = "ridge",
                 method = "rejection")
