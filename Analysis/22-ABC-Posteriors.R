@@ -1,3 +1,8 @@
+# -----------------------------
+# SchistoDynAgg Weighted posterior distributions from ABC estimation  
+# Chris Hoover
+# -----------------------------
+
 library(tidyverse)
 library(abc)
 

@@ -1,3 +1,8 @@
+# -----------------------------
+# SchistoDynAgg ABC posterior predictions: compare data generated from weighted posteriors to observed data
+# Chris Hoover
+# -----------------------------
+
 library(tidyverse)
 library(abc)
 

@@ -1,3 +1,8 @@
+# -----------------------------
+# SchistoDynAgg ABC model comparisons using posterior probabilities and bayes factor
+# Chris Hoover
+# -----------------------------
+
 library(tidyverse)
 library(abc)
 
