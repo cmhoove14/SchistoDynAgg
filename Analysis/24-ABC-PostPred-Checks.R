@@ -159,7 +159,7 @@ abc_post_pred_checks <- foreach(
                   abc_post_pred_case2_df,
                   abc_post_pred_case3_df,
                   abc_post_pred_case4_df) %>% 
-    relocate(Shehia, Year, Pop, Case) %>% 
+    relocate(Isl, Shehia, Year, Pop, Case) %>% 
     mutate(IQR = q75 - q25)
   
   return(df.out)
