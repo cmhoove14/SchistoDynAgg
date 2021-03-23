@@ -4,38 +4,66 @@ library(patchwork)
 
 devtools::load_all()
 
-load(here::here("Data/Derived/abc_processed_results.Rdata"))
+yO <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
 
-abc_obs_gen_comp <- abc_fin_df_case_long %>% 
-  filter(Case %in% c("Case1", "Case2", "Case3", "Case4")) %>% 
-  dplyr::select(Isl, Shehia, Year, pop, Case, UF_mean, genE.med, genE.hiq, genE.loq) %>% 
+abc_post_preds_SumStats <- readRDS(here::here("Data/Derived/abc_post_pred_checks.rds")) %>% 
+  filter(SumStat %in% c("E", "E_se","E_pos2n")) %>% 
+  
+  # Temp solution to remove duplicates
+  filter(!Shehia %in% c("KINYASINI", "MBUZINI"))
+  
+
+
+
+  
+abc_post_preds_SumStats_wide <- abc_post_preds_SumStats %>% 
+  #mutate(row = row_number()) %>% 
+  pivot_wider(names_from = SumStat,
+              values_from = q025:IQR,
+              names_sep = "_") %>% 
+  left_join(yO, 
+            by = c(#"Isl"    = "Isl", 
+              "Shehia" = "Shehia", 
+              "Year"   = "Year", 
+              "Pop"    = "pop")) %>% 
+  mutate(E_mse = (UF_mean - q5_E)^2/n_ppl,
+         E_se_mse = (UF_se - q5_E_se)^2/n_ppl,
+         E_pos2n_mse = (UFpos2n - q5_E_pos2n)^2/n_ppl)
+
+
+
+
+
+
+
+abc_obs_gen_comp <- abc_post_preds_SumStats_wide %>% 
+  dplyr::select(Isl, Shehia, Year, Pop, Case, UF_mean, q5_E, q25_E, q75_E) %>% 
   rename("Obs" = UF_mean,
-         "GenMed" = genE.med,
-         "GenHiq" = genE.hiq,
-         "GenLoq" = genE.loq) %>% 
+         "GenMed" = q5_E,
+         "GenHiq" = q75_E,
+         "GenLoq" = q25_E) %>% 
   mutate(SumStat = "Mean Egg Burden") %>% 
-  bind_rows(abc_fin_df_case_long %>% 
-              filter(Case %in% c("Case1", "Case2", "Case3", "Case4")) %>% 
-              dplyr::select(Isl, Shehia, Year, pop, Case, UF_se, genEse.med, genEse.hiq, genEse.loq) %>% 
+  bind_rows(abc_post_preds_SumStats_wide %>% 
+              dplyr::select(Isl, Shehia, Year, Pop, Case, UF_se, q5_E_se, q25_E_se, q75_E_se) %>% 
               rename("Obs" = UF_se,
-                     "GenMed" = genEse.med,
-                     "GenHiq" = genEse.hiq,
-                     "GenLoq" = genEse.loq) %>% 
+                     "GenMed" = q5_E_se,
+                     "GenHiq" = q75_E_se,
+                     "GenLoq" = q25_E_se) %>% 
               mutate(SumStat = "Std. Er Egg Burden")) %>% 
-  bind_rows(abc_fin_df_case_long %>% 
-              filter(Case %in% c("Case1", "Case2", "Case3", "Case4")) %>% 
-              dplyr::select(Isl, Shehia, Year, pop, Case, UFpos2n, genEpos2n.med, genEpos2n.hiq, genEpos2n.loq) %>% 
+  bind_rows(abc_post_preds_SumStats_wide %>% 
+              dplyr::select(Isl, Shehia, Year, Pop, Case, UFpos2n, q5_E_pos2n, q25_E_pos2n, q75_E_pos2n) %>% 
               rename("Obs" = UFpos2n,
-                     "GenMed" = genEpos2n.med,
-                     "GenHiq" = genEpos2n.hiq,
-                     "GenLoq" = genEpos2n.loq) %>% 
+                     "GenMed" = q5_E_pos2n,
+                     "GenHiq" = q75_E_pos2n,
+                     "GenLoq" = q25_E_pos2n) %>% 
               mutate(SumStat = "Adjusted Prevalence"))
 
 abc_obs_gen_comp_plot <- abc_obs_gen_comp %>% 
   ggplot(aes(x = Obs, y = GenMed, col = Case,
-             ymin = GenLoq, ymax = GenHiq)) +
+             ymin = GenLoq, ymax = GenHiq,
+             size = 1/(GenHiq-GenLoq))) +
   geom_point(alpha = 0.5) +
-  geom_errorbar(alpha = 0.5) +
+  #geom_errorbar(alpha = 0.5) +
   geom_abline(slope = 1, lty = 2) +
   scale_x_continuous(trans = "log",
                      breaks = c(0.01, 0.1, 1, 10, 100),
@@ -43,15 +71,16 @@ abc_obs_gen_comp_plot <- abc_obs_gen_comp %>%
   scale_y_continuous(trans = "log",
                      breaks = c(0.01, 0.1, 1, 10, 100),
                      labels = c("0.01", "0.1", "1", "10", "100")) +
-  scale_color_manual(values = c("#058dd6", "#cc4a49", "#7b6c7c", "#64a860")) +
+  scale_color_manual(values = c("#3b46ca", "#fc45b7", "#bc86af", "#009d23")) +
   facet_grid(Case~SumStat) +
-  theme_bw() +
+  theme_classic() +
+  theme(legend.position = "none",
+        strip.background = element_rect(fill = NULL)) +
   labs(x = "Observed value",
        y = "Generated value")
 
 abc_obs_gen_comp_plot
 
-ggsave(here("Figures/Supp1-abc_obs_gen_validation.png"),
-       height = 5, width = 8, units = "in")
-
 #"Comparison of generated to observed summary statistics used in approximate bayesian computation estimation of community parasite burdens. Colors indicate the data generating Case and the 1:1 line implying perfect agreement between observed and generated data is shown. Error bars correspond to interquartile ranges of the generated summary statistics from parameter sets included in the posterior distribution."
+
+
