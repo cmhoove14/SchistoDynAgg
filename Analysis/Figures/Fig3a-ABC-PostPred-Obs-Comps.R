@@ -7,10 +7,7 @@ devtools::load_all()
 yO <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
 
 abc_post_preds_SumStats <- readRDS(here::here("Data/Derived/abc_post_pred_checks.rds")) %>% 
-  filter(SumStat %in% c("E", "E_se","E_pos2n")) %>% 
-  
-  # Temp solution to remove duplicates
-  filter(!Shehia %in% c("KINYASINI", "MBUZINI"))
+  filter(SumStat %in% c("E", "E_se","E_pos2n"))
   
 
 
@@ -22,10 +19,10 @@ abc_post_preds_SumStats_wide <- abc_post_preds_SumStats %>%
               values_from = q025:IQR,
               names_sep = "_") %>% 
   left_join(yO, 
-            by = c(#"Isl"    = "Isl", 
-              "Shehia" = "Shehia", 
-              "Year"   = "Year", 
-              "Pop"    = "pop")) %>% 
+            by = c("Isl"    = "Isl", 
+                   "Shehia" = "Shehia", 
+                   "Year"   = "Year", 
+                   "Pop"    = "pop")) %>% 
   mutate(E_mse = (UF_mean - q5_E)^2/n_ppl,
          E_se_mse = (UF_se - q5_E_se)^2/n_ppl,
          E_pos2n_mse = (UFpos2n - q5_E_pos2n)^2/n_ppl)
@@ -60,24 +57,25 @@ abc_obs_gen_comp <- abc_post_preds_SumStats_wide %>%
 
 abc_obs_gen_comp_plot <- abc_obs_gen_comp %>% 
   ggplot(aes(x = Obs, y = GenMed, col = Case,
-             ymin = GenLoq, ymax = GenHiq,
-             size = 1/(GenHiq-GenLoq))) +
+             ymin = GenLoq, ymax = GenHiq)) +
   geom_point(alpha = 0.5) +
   #geom_errorbar(alpha = 0.5) +
   geom_abline(slope = 1, lty = 2) +
-  scale_x_continuous(trans = "log",
-                     breaks = c(0.01, 0.1, 1, 10, 100),
-                     labels = c("0.01", "0.1", "1", "10", "100")) +
-  scale_y_continuous(trans = "log",
-                     breaks = c(0.01, 0.1, 1, 10, 100),
-                     labels = c("0.01", "0.1", "1", "10", "100")) +
+  scale_x_continuous(trans = "log1p",
+                     breaks = c(0, 1, 10, 100),
+                     limits = c(0,100),
+                     labels = c("0", "1", "10", "100")) +
+  scale_y_continuous(trans = "log1p",
+                     breaks = c(0, 1, 10, 100),
+                     limits = c(0,100),
+                     labels = c("0", "1", "10", "100")) +
   scale_color_manual(values = c("#3b46ca", "#fc45b7", "#bc86af", "#009d23")) +
   facet_grid(Case~SumStat) +
   theme_classic() +
   theme(legend.position = "none",
         strip.background = element_rect(fill = NULL)) +
-  labs(x = "Observed value",
-       y = "Generated value")
+  labs(x = "Observed value (log+1 transformed)",
+       y = "Generated value (log+1 transformed)")
 
 abc_obs_gen_comp_plot
 
