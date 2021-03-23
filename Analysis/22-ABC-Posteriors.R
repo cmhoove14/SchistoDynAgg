@@ -28,13 +28,13 @@ yO <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
   
 # Get posterior summaries ----------------------
 abc_posteriors <- bind_rows(lapply(abc_sims2, function(abc_run){
-  shehia <- as.character(abc_run[[1]])
+  shehia <- as.character(abc_run[[1]]) ; cat(shehia)
   year   <- as.integer(abc_run[[2]])
   pop    <- as.character(abc_run[[3]])
 
 # Process case 1 runs  
   case1_post_dists <- abc_run[[4]]$dist[abc_run[[4]]$region]                        # Distance metrics of inputs reaching tolerance
-  case1_weights    <- max(case1_post_dists)/(case1_post_dists+1/post_samp_size)     # Weights normalized based on largest distance, truncated to avoid Inf 
+  case1_weights    <- max(case1_post_dists)/(case1_post_dists+1/post_samp_size)+1     # Weights normalized based on largest distance, truncated to avoid Inf 
   case1_init_post  <- abc_run[[4]]$unadj.values                                     # Initial posterior as values reaching tolerance with rejection method
   case1_post_samps <- sample(                                                       # Weighted sample
     x       = 1:nrow(case1_init_post), 
@@ -46,7 +46,7 @@ abc_posteriors <- bind_rows(lapply(abc_sims2, function(abc_run){
   
 # Process case 2 runs  
   case2_post_dists <- abc_run[[5]]$dist[abc_run[[5]]$region]     # Distance metrics of inputs reaching tolerance
-  case2_weights    <- max(case2_post_dists)/(case2_post_dists+1/post_samp_size)     # Weights normalized based on largest distance
+  case2_weights    <- max(case2_post_dists)/(case2_post_dists+1/post_samp_size)+1     # Weights normalized based on largest distance
   case2_init_post  <- abc_run[[5]]$unadj.values                  # Initial posterior as values reaching tolerance with rejection method
   case2_post_samps <- sample(                                    # Weighted sample
     x       = 1:nrow(case2_init_post), 
@@ -58,7 +58,7 @@ abc_posteriors <- bind_rows(lapply(abc_sims2, function(abc_run){
   
 # Process case 3 runs  
   case3_post_dists <- abc_run[[6]]$dist[abc_run[[6]]$region]     # Distance metrics of inputs reaching tolerance
-  case3_weights    <- max(case3_post_dists)/(case3_post_dists+1/post_samp_size)     # Weights normalized based on largest distance
+  case3_weights    <- max(case3_post_dists)/(case3_post_dists+1/post_samp_size)+1    # Weights normalized based on largest distance
   case3_init_post  <- abc_run[[6]]$unadj.values                  # Initial posterior as values reaching tolerance with rejection method
   case3_post_samps <- sample(                                    # Weighted sample
     x       = 1:nrow(case3_init_post), 
@@ -70,7 +70,7 @@ abc_posteriors <- bind_rows(lapply(abc_sims2, function(abc_run){
   
 # Process case 4 runs  
   case4_post_dists <- abc_run[[7]]$dist[abc_run[[7]]$region]     # Distance metrics of inputs reaching tolerance
-  case4_weights    <- max(case4_post_dists)/(case4_post_dists+1/post_samp_size)     # Weights normalized based on largest distance
+  case4_weights    <- max(case4_post_dists)/(case4_post_dists+1/post_samp_size)+1     # Weights normalized based on largest distance
   case4_init_post  <- abc_run[[7]]$unadj.values                  # Initial posterior as values reaching tolerance with rejection method
   case4_post_samps <- sample(                                    # Weighted sample
     x       = 1:nrow(case4_init_post), 
