@@ -6,19 +6,30 @@ library(patchwork)
 
 devtools::load_all()
 
+yO <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
+
 abc_post_preds_kapW <- readRDS(here::here("Data/Derived/abc_post_pred_checks.rds")) %>% 
-  filter(SumStat %in% c("mean_W", "var_W","kap_W")) %>% 
-  # Temp solution to remove duplicates
-  filter(!Shehia %in% c("KINYASINI", "MBUZINI")) %>% 
-  #mutate(row = row_number()) %>% 
+  filter(SumStat %in% c("E", "E_se","E_pos2n", "mean_W", "var_W","kap_W")) %>% 
   pivot_wider(names_from = SumStat,
               values_from = q025:IQR,
-              names_sep = "_")
+              names_sep = "_") %>% 
+  left_join(yO, 
+            by = c("Isl"    = "Isl", 
+                   "Shehia" = "Shehia", 
+                   "Year"   = "Year", 
+                   "Pop"    = "pop")) %>% 
+  mutate(UF_prev     = UF_pos/n_ppl,
+         E_mse       = (UF_mean - q5_E)^2/n_ppl,
+         E_se_mse    = (UF_se - q5_E_se)^2/n_ppl,
+         E_pos2n_mse = (UFpos2n - q5_E_pos2n)^2/n_ppl,
+         MSE_sum     = E_mse+E_se_mse+E_pos2n_mse)
+
+
 
 # Case1 PLot ----------------------
 case1_gee <- geeglm(log(q5_kap_W^-1) ~ log(q5_mean_W), id = as.factor(Shehia),
                     family = "gaussian", corstr = "unstructured",
-                    weights = 1/IQR_kap_W,
+                    weights = 1/MSE_sum,
                     data = abc_post_preds_kapW  %>% filter(Case=="case1" & Pop == "Comm"))
 
 case1_gee_coef1 <- coef(case1_gee)[1]
@@ -33,12 +44,12 @@ kap_W_case1_plot <- abc_post_preds_kapW %>%
   filter(Case=="case1" & Pop == "Comm") %>% 
   ggplot(aes(x = q5_mean_W,
              y = q5_kap_W)) +
-  geom_point(aes(size = 1/IQR_kap_W),
+  geom_point(aes(size = 1/MSE_sum),
              col = "#3b46ca",
              alpha = 0.3,
              show.legend = FALSE) +
   #stat_smooth(col = "black") +
-  stat_function(fun = case1_gee_fx, size = 1.2, col = "black") +
+  stat_function(fun = case1_gee_fx, size = 1, lty = 2, col = "black", alpha = 0.5) +
   theme_classic() +
   theme(axis.title.x = element_blank(),
         plot.title = element_text(hjust = 0.1, vjust = -1)) +
@@ -57,7 +68,7 @@ kap_W_case1_plot <- abc_post_preds_kapW %>%
 # Case2 PLot ----------------------
 case2_gee <- geeglm(log(q5_kap_W^-1) ~ log(q5_mean_W), id = as.factor(Shehia),
                     family = "gaussian", corstr = "unstructured",
-                    weights = 1/IQR_kap_W,
+                    weights = 1/MSE_sum,
                     data = abc_post_preds_kapW  %>% filter(Case=="case2" & Pop == "Comm"))
 
 case2_gee_coef1 <- coef(case2_gee)[1]
@@ -72,12 +83,12 @@ kap_W_case2_plot <- abc_post_preds_kapW %>%
   filter(Case=="case2" & Pop == "Comm") %>% 
   ggplot(aes(x = q5_mean_W,
              y = q5_kap_W)) +
-  geom_point(aes(size = 1/IQR_kap_W),
+  geom_point(aes(size = 1/MSE_sum),
              col = "#fc45b7",
              alpha = 0.3,
              show.legend = FALSE) +
   #stat_smooth(col = "black") +
-  stat_function(fun = case2_gee_fx, size = 1.2, col = "black") +
+  stat_function(fun = case2_gee_fx, size = 1, lty = 2, col = "black", alpha = 0.5) +
   theme_classic() +
   theme(axis.text.y = element_blank(),
         axis.title = element_blank(),
@@ -98,7 +109,7 @@ kap_W_case2_plot <- abc_post_preds_kapW %>%
 # Case3 PLot ----------------------
 case3_gee <- geeglm(log(q5_kap_W^-1) ~ log(q5_mean_W), id = as.factor(Shehia),
                     family = "gaussian", corstr = "unstructured",
-                    weights = 1/IQR_kap_W,
+                    weights = 1/MSE_sum,
                     data = abc_post_preds_kapW  %>% filter(Case=="case3" & Pop == "Comm" & q5_mean_W > 0))
 
 case3_gee_coef1 <- coef(case3_gee)[1]
@@ -112,12 +123,12 @@ kap_W_case3_plot <- abc_post_preds_kapW %>%
   filter(Case=="case3" & Pop == "Comm") %>% 
   ggplot(aes(x = q5_mean_W,
              y = q5_kap_W)) +
-  geom_point(aes(size = 1/IQR_kap_W),
+  geom_point(aes(size = 1/MSE_sum),
              col = "#bc86af",
              alpha = 0.3,
              show.legend = FALSE) +
   #stat_smooth(col = "black") +
-  stat_function(fun = case3_gee_fx, size = 1.2, col = "black") +
+  stat_function(fun = case3_gee_fx, size = 1, lty = 2, col = "black", alpha = 0.5) +
   theme_classic() +
   theme(plot.title = element_text(hjust = 0.1, vjust = -1)) +
   scale_size(range = c(1,4)) +
@@ -136,7 +147,7 @@ kap_W_case3_plot <- abc_post_preds_kapW %>%
 # Case4 PLot ----------------------
 case4_gee <- geeglm(log(q5_kap_W^-1) ~ log(q5_mean_W), id = as.factor(Shehia),
                     family = "gaussian", corstr = "unstructured",
-                    weights = 1/IQR_kap_W,
+                    weights = 1/MSE_sum,
                     data = abc_post_preds_kapW  %>% filter(Case=="case4" & Pop == "Comm"))
 
 case4_gee_coef1 <- coef(case4_gee)[1]
@@ -150,12 +161,12 @@ kap_W_case4_plot <- abc_post_preds_kapW %>%
   filter(Case=="case4" & Pop == "Comm") %>% 
   ggplot(aes(x = q5_mean_W,
              y = q5_kap_W)) +
-  geom_point(aes(size = 1/IQR_kap_W),
+  geom_point(aes(size = 1/MSE_sum),
              col = "#009d23",
              alpha = 0.3,
              show.legend = FALSE) +
   #stat_smooth(col = "black") +
-  stat_function(fun = case4_gee_fx, size = 1.2, col = "black") +
+  stat_function(fun = case4_gee_fx, size = 1, lty = 2, col = "black", alpha = 0.5) +
   theme_classic() +
   theme(axis.text.y = element_blank(),
         axis.title.y = element_blank(),
