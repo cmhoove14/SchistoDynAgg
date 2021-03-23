@@ -207,3 +207,8 @@ grid.arrange(arrangeGrob(kap_W_case1_plot + theme(axis.title = element_blank()),
 
 dev.off()
 
+save(list = c("case1_gee_fx", "case1_gee_coef1", "case1_gee_coef2",
+              "case2_gee_fx", "case2_gee_coef1", "case2_gee_coef2",
+              "case3_gee_fx", "case3_gee_coef1", "case3_gee_coef2",
+              "case4_gee_fx", "case4_gee_coef1", "case4_gee_coef2"),
+     file = here::here("Data/Derived/ABC_W_by_kap_GEEs.Rdata"))
