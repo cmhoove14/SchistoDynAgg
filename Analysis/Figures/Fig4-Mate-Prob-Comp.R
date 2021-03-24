@@ -6,167 +6,258 @@ library(patchwork)
 
 devtools::load_all()
 
-load(here::here("Data/Derived/abc_processed_results.Rdata"))
+yO <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
 
+abc_post_preds_MateProb <- readRDS(here::here("Data/Derived/abc_post_pred_checks.rds")) %>% 
+  filter(SumStat %in% c("E", "E_se","E_pos2n", "mean_W", "kap_W", "prob_Phi")) %>% 
+  pivot_wider(names_from = SumStat,
+              values_from = q025:IQR,
+              names_sep = "_") %>% 
+  left_join(yO, 
+            by = c("Isl"    = "Isl", 
+                   "Shehia" = "Shehia", 
+                   "Year"   = "Year", 
+                   "Pop"    = "pop")) %>% 
+  mutate(UF_prev     = UF_pos/n_ppl,
+         E_mse       = (UF_mean - q5_E)^2/UF_mean,
+         E_se_mse    = (UF_se - q5_E_se)^2/UF_se,
+         E_pos2n_mse = (UFpos2n - q5_E_pos2n)^2/UFpos2n,
+         MSE_sum     = E_mse+E_se_mse+E_pos2n_mse)
 
-# Fig 3: Mating probability -------------
+load(here::here("data/derived/ABC_W_by_kap_GEEs.Rdata"))
+load(here::here("data/derived/gee_results.Rdata"))
+
+# Analytic Mating probability estimates-------------
 test_ws <- exp_seq(1e-3,100,200)
 
-# Mean worm burden by aggregation for case 1
-alphaW_gee_case1 <- geeglm(log(obsalphaW.med) ~ log(obsW.med), id = as.factor(Shehia),
-                           family = "gaussian", corstr = "unstructured",
-                           weights = obsalphaW.med/(obsalphaW.hiq-obsalphaW.loq),
-                           data = abc_fin_df_case_long %>% filter(Case == "Case1" & pop == "Comm"))
+phi_opts <- expand.grid(Case = paste0("case", c(1:4)),
+                        kap  = c("const", "dynaE", "dynaW"))
 
-geeW_coef1_case1 <- coef(alphaW_gee_case1)[1]
-geeW_coef2_case1 <- coef(alphaW_gee_case1)[2]
-
-zanz_kappa_W_gee_case1 <- function(W){
-  exp(geeW_coef1_case1+geeW_coef2_case1*log(W))^-1
-}
-
+phi_preds <- bind_rows(lapply(1:nrow(phi_opts), function(x){
+  dat <- abc_post_preds_MateProb %>% 
+    filter(Pop == "Comm" & Case == x[1])
+  
+  kap_fx <- if_else(x[2] == "dynaE")
+  
+  if(x[2] == "const"){
+    out_phi <- sapply(test_ws,
+                      phi_Wk,
+                      k = median(dat %>% pull(q5_kap_W)))
+  } else if(x[2] == "dynaE"){
+    out_phi <- mapply(phi_Wk,
+                      test_ws,
+                      zanz_kappa_W_gee_case1(test_ws))
+    
+  } else if(x[2] == "dynaW"){
+    out_phi <- mapply(phi_Wk,
+                      test_ws,
+                      case1_gee_fx(test_ws))
+  }
+  
+}))
 
 phi_pred <- as.data.frame(cbind("W" = test_ws,
-                                "Phi_k005" = sapply(test_ws, phi_Wk, k = 0.05),
-                                "Phi_dynak" = mapply(phi_Wk, test_ws, zanz_kappa_W_gee_case1(test_ws)),
-                                "Phi_case2k005" = sapply(test_ws, phi_wk_sep, k = 0.05),
-                                "Phi_case2dynak" = mapply(phi_wk_sep, test_ws, zanz_kappa_W_gee_case1(test_ws))))
+                                "Phi_c1_constk" = sapply(test_ws, phi_Wk, k = median(abc_post_preds_MateProb %>% 
+                                                                                       filter(Pop == "Comm" & Case == "case1") %>% 
+                                                                                       pull(q5_kap_W))),
+                                "Phi_c1_dynak_E" = mapply(phi_Wk, test_ws, zanz_kappa_E_gee(test_ws)),
+                                "Phi_c1_dynak_W" = mapply(phi_Wk, test_ws, case1_gee_fx(test_ws)),
+                                "Phi_c2_constk" = sapply(test_ws, phi_wk_sep, k = median(abc_post_preds_MateProb %>% 
+                                                                                       filter(Pop == "Comm" & Case == "case2") %>% 
+                                                                                       pull(q5_kap_W))),
+                                "Phi_c2_dynak_E" = mapply(phi_wk_sep, test_ws, zanz_kappa_E_gee(test_ws)),
+                                "Phi_c2_dynak_W" = mapply(phi_wk_sep, test_ws, case2_gee_fx(test_ws)),
+                                "Phi_c3_constk" = sapply(test_ws, phi_Wk, k = median(abc_post_preds_MateProb %>% 
+                                                                                       filter(Pop == "Comm" & Case == "case3") %>% 
+                                                                                       pull(q5_kap_W))),
+                                "Phi_c3_dynak_E" = mapply(phi_Wk, test_ws, zanz_kappa_E_gee(test_ws)),
+                                "Phi_c3_dynak_W" = mapply(phi_Wk, test_ws, case3_gee_fx(test_ws)),
+                                "Phi_c4_constk" = sapply(test_ws, phi_Wk, k = median(abc_post_preds_MateProb %>% 
+                                                                                       filter(Pop == "Comm" & Case == "case4") %>% 
+                                                                                       pull(q5_kap_W))),
+                                "Phi_c4_dynak_E" = mapply(phi_Wk, test_ws, zanz_kappa_E_gee(test_ws)),
+                                "Phi_c4_dynak_W" = mapply(phi_Wk, test_ws, case4_gee_fx(test_ws))
+                                
+))
 
-# Case1 mate prob plot ----------------------
-abc_case1_mate_prob <- abc_fin_df_case_long %>% 
-  filter(Case=="Case1" & pop == "Comm") %>% 
-  ggplot(aes(x = obsW.med,
-             y = obsPhiProbW.med, 
-             size = obsPhiProbW.med/(obsPhiProbW.hiq-obsPhiProbW.loq))) +
-  geom_point(col = "#058dd6",
-             alpha = 0.3,
-             show.legend = FALSE) +
-  theme_classic() +
-  theme(axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.title.y = element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.position = "none") +
-  scale_size(range = c(1,4)) +
-  ylim(c(0,1)) +
-  scale_x_continuous(trans = "log",
-                     breaks = c(0.01, 0.1, 1, 10, 100),
-                     labels = c("0.01", "0.1", "1", "10", "100"),
-                     limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
-                                max(abc_fin_df_case_long$obsW.med, na.rm = T))) +
-  labs(title = "Case 1",
-       tag = "A")
 
-# Case2 mate prob plot ----------------------
-abc_case2_mate_prob <- abc_fin_df_case_long %>% 
-  filter(Case=="Case2" & pop == "Comm") %>% 
-  ggplot(aes(x = obsW.med,
-             y = obsPhiProbW.med, 
-             size = obsPhiProbW.med/(obsPhiProbW.hiq-obsPhiProbW.loq))) +
-  geom_point(col = "#cc4a49",
-             alpha = 0.3,
-             show.legend = FALSE) +
-  theme_classic() +
-  theme(axis.title.y = element_text(size = 9.5),
-        axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.position = "none") +
-  scale_size(range = c(1,4)) +
-  ylim(c(0,1)) +
-  scale_x_continuous(trans = "log",
-                     breaks = c(0.01, 0.1, 1, 10, 100),
-                     labels = c("0.01", "0.1", "1", "10", "100"),
-                     limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
-                                max(abc_fin_df_case_long$obsW.med, na.rm = T)))+
+# Mating probability plots for individual cases -------------
+# Case 1
+abc_post_preds_MateProb1_plot <- abc_post_preds_MateProb %>% 
+  filter(Case == "case1") %>% 
+  ggplot(aes(x = q5_mean_W,
+             y = q5_prob_Phi)) +
+    geom_point(aes(size = 1/MSE_sum),
+               col = "#3b46ca",
+               alpha = 0.5,
+               show.legend = FALSE) +
+    geom_line(data = phi_pred %>% 
+                dplyr::select(W:Phi_c1_dynak_W) %>% 
+                rename("Constant k" = Phi_c1_constk,
+                       "k(E)" = Phi_c1_dynak_E,
+                       "k(W)" = Phi_c1_dynak_W) %>% 
+                pivot_longer(`Constant k`:`k(W)`,
+                             names_to = "Aggregation Function",
+                             values_to = "Phi"),
+              aes(x = W, y = Phi, lty = `Aggregation Function`)) +
+    theme_classic() +
+    theme(legend.position = c(0.8,0.25),
+          legend.title = element_text(size = 9),
+          legend.text = element_text(size = 7),
+          plot.title = element_text(hjust = 0.1, vjust = -1)) +
+    scale_size(range = c(1,4)) +
+    ylim(c(0,1)) +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01, 0.1, 1, 10, 100),
+                       labels = c("0.01", "0.1", "1", "10", "100"),
+                       limits = c(0.01, max(abc_post_preds_MateProb %>% 
+                                              filter(Pop == "Comm") %>% 
+                                              pull(q5_mean_W)))) +
   labs(y = expression(Mating~probability~(Phi[st])),
-       title = "Case 2",
-       tag = "B")
+       lty = "Aggregation\nFunction",
+       title = "A.   Case 1")
+  
 
-# Case3 mate prob plot ----------------------
-abc_case3_mate_prob <- abc_fin_df_case_long %>% 
-  filter(Case=="Case3" & pop == "Comm") %>% 
-  ggplot(aes(x = obsW.med,
-             y = obsPhiProbW.med, 
-             size = obsPhiProbW.med/(obsPhiProbW.hiq-obsPhiProbW.loq))) +
-  geom_point(col = "#7b6c7c",
-             alpha = 0.3,
+
+
+
+
+# Case 2
+abc_post_preds_MateProb2_plot <- abc_post_preds_MateProb %>% 
+  filter(Case == "case2") %>% 
+  ggplot(aes(x = q5_mean_W,
+             y = q5_prob_Phi)) +
+  geom_point(aes(size = 1/MSE_sum),
+             col = "#fc45b7",
+             alpha = 0.5,
              show.legend = FALSE) +
+  geom_line(data = phi_pred %>% 
+              dplyr::select(W, Phi_c2_constk:Phi_c2_dynak_W) %>% 
+              pivot_longer(Phi_c2_constk:Phi_c2_dynak_W,
+                           names_to = "Aggregation Function",
+                           values_to = "Phi"),
+            aes(x = W, y = Phi, lty = `Aggregation Function`)) +
   theme_classic() +
-  theme(axis.title.y = element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.position = "none") +
+  theme(legend.position = "none",
+        axis.text.y = element_blank(),
+        axis.title = element_blank(),
+        axis.line.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        plot.title = element_text(hjust = 0.1, vjust = -1)) +
   scale_size(range = c(1,4)) +
   ylim(c(0,1)) +
   scale_x_continuous(trans = "log",
                      breaks = c(0.01, 0.1, 1, 10, 100),
                      labels = c("0.01", "0.1", "1", "10", "100"),
-                     limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
-                                max(abc_fin_df_case_long$obsW.med, na.rm = T)))+
-  labs(x = expression(Mean~worm~burden~(W[st])),
-       title = "Case 3",
-       tag = "C")
+                     limits = c(0.01, max(abc_post_preds_MateProb %>% 
+                                            filter(Pop == "Comm") %>% 
+                                            pull(q5_mean_W)))) +
+  labs(title = "B.   Case 2")
 
-# Case4 mate prob plot ----------------------
-abc_case4_mate_prob <- abc_fin_df_case_long %>% 
-  filter(Case=="Case4" & pop == "Comm") %>% 
-  ggplot(aes(x = obsW.med,
-             y = obsPhiProbW.med, 
-             size = obsPhiProbW.med/(obsPhiProbW.hiq-obsPhiProbW.loq))) +
-  geom_point(col = "#64a860",
-             alpha = 0.3,
+
+
+
+
+# Case 3
+abc_post_preds_MateProb3_plot <- abc_post_preds_MateProb %>% 
+  filter(Case == "case3") %>% 
+  ggplot(aes(x = q5_mean_W,
+             y = q5_prob_Phi)) +
+  geom_point(col = "#bc86af",
+             alpha = 0.5,
              show.legend = FALSE) +
+  geom_line(data = phi_pred %>% 
+              dplyr::select(W, Phi_c3_constk:Phi_c3_dynak_W) %>% 
+              pivot_longer(Phi_c3_constk:Phi_c3_dynak_W,
+                           names_to = "Aggregation Function",
+                           values_to = "Phi"),
+            aes(x = W, y = Phi, lty = `Aggregation Function`)) +
   theme_classic() +
-  theme(axis.title.y = element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.position = "none") +
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.1, vjust = -1)) +
   scale_size(range = c(1,4)) +
   ylim(c(0,1)) +
   scale_x_continuous(trans = "log",
                      breaks = c(0.01, 0.1, 1, 10, 100),
                      labels = c("0.01", "0.1", "1", "10", "100"),
-                     limits = c(min(abc_fin_df_case_long$obsW.med, na.rm = T),
-                                max(abc_fin_df_case_long$obsW.med, na.rm = T)))+
+                     limits = c(0.01, max(abc_post_preds_MateProb %>% 
+                                            filter(Pop == "Comm") %>% 
+                                            pull(q5_mean_W)))) +
   labs(x = expression(Mean~worm~burden~(W[st])),
-       title = "Case 4",
-       tag = "D")
+       title = "C.   Case 3")
 
-# Mating probabilities ------------
-mate_prob_lines <- phi_pred %>% 
-  pivot_longer(Phi_k005:Phi_case2dynak) %>% 
-  mutate(kap_dyna = if_else(grepl("dynak", name), "Dynamic", "Constant"),
-         Case1_2 = if_else(grepl("case2", name), "Case2", "Case1")) %>% 
-  filter(Case1_2 == "Case1") %>% 
-  ggplot() +
-  geom_line(aes(x = W, y = value, lty = kap_dyna),
-            size = 1.2) +
+
+
+
+
+#Case 4
+abc_post_preds_MateProb4_plot <- abc_post_preds_MateProb %>% 
+  filter(Case == "case4") %>% 
+  ggplot(aes(x = q5_mean_W,
+             y = q5_prob_Phi)) +
+  geom_point(aes(size = 1/MSE_sum),
+             col = "#009d23",
+             alpha = 0.5,
+             show.legend = FALSE) +
+  geom_line(data = phi_pred %>% 
+              dplyr::select(W, Phi_c4_constk:Phi_c4_dynak_W) %>% 
+              pivot_longer(Phi_c4_constk:Phi_c4_dynak_W,
+                           names_to = "Aggregation Function",
+                           values_to = "Phi"),
+            aes(x = W, y = Phi, lty = `Aggregation Function`)) +
   theme_classic() +
-  theme(legend.position = "none") +
+  theme(legend.position = "none",
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.line.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        plot.title = element_text(hjust = 0.1, vjust = -1)) +
+  scale_size(range = c(1,4)) +
+  ylim(c(0,1)) +
   scale_x_continuous(trans = "log",
                      breaks = c(0.01, 0.1, 1, 10, 100),
                      labels = c("0.01", "0.1", "1", "10", "100"),
-                     limits = c(0.05, 200)) +
-  ylim(c(0,1)) +
-  labs(y = expression(Mating~Probability~(Phi(W, kappa))),
-       x = expression(Mean~worm~burden~(W[st])),
-       tag = "D")
+                     limits = c(0.01, max(abc_post_preds_MateProb %>% 
+                                            filter(Pop == "Comm") %>% 
+                                            pull(q5_mean_W)))) +
+  labs(x = expression(Mean~worm~burden~(W[st])),
+       title = "D.   Case 4")
 
-abc_w_mate_prob_lines <- mate_prob_lines +
-  stat_smooth(data = abc_fin_df_case_long %>% filter(Case %in% c("Case1", "Case2", "Case3", "Case4") & pop == "Comm"),
-              aes(x = obsW.med, y = obsPhiProbW.med, col = Case)) +
-  scale_color_manual(values = c("#058dd6", "#cc4a49", "#7b6c7c", "#64a860")) +
-  theme(plot.title = element_text(size = 14,hjust = 0.5))# + labs(title = "Observed and Estimated\nMating Probability")
 
-png(here::here("Figures/Fig3_ABC_MateProb_Results.png"),
-    height = 5.5, width = 7, units = "in", res = 300)
 
-(abc_case1_mate_prob | abc_case2_mate_prob) / (abc_case3_mate_prob | abc_case4_mate_prob) | abc_w_mate_prob_lines# + plot_layout(widths = c(3,3,2))
+
+
+
+
+#Combine individual cases in final plot ----------
+
+png(here::here("Figures/Fig4_Mate_Probs.png"),
+    height = 7, width = 7, units = "in", res = 300)
+
+grid.arrange(arrangeGrob(abc_post_preds_MateProb1_plot + theme(axis.title = element_blank()), 
+                         abc_post_preds_MateProb2_plot + theme(axis.title = element_blank()),
+                         abc_post_preds_MateProb3_plot + theme(axis.title = element_blank()),
+                         abc_post_preds_MateProb4_plot + theme(axis.title = element_blank()), 
+                         nrow = 2, ncol = 2,
+                         left = textGrob(expression(Mating~probability~(Phi[st])), rot = 90, vjust = 1),
+                         bottom = textGrob(expression(Mean~worm~burden~(W[st])), vjust = 0.2)))
 
 dev.off()
 
-pdf(here::here("Figures/Fig3_ABC_MateProb_Results.pdf"),
-    height = 5.5, width = 7)
 
-(abc_case1_mate_prob | abc_case2_mate_prob) / (abc_case3_mate_prob | abc_case4_mate_prob) | abc_w_mate_prob_lines# + plot_layout(widths = c(3,2))
+
+
+pdf(here::here("Figures/Fig4_Mate_Probs.pdf"),
+    height = 7, width = 7)
+
+grid.arrange(arrangeGrob(abc_post_preds_MateProb1_plot + theme(axis.title = element_blank()), 
+                         abc_post_preds_MateProb2_plot + theme(axis.title = element_blank()),
+                         abc_post_preds_MateProb3_plot + theme(axis.title = element_blank()),
+                         abc_post_preds_MateProb4_plot + theme(axis.title = element_blank()), 
+                         nrow = 2, ncol = 2,
+                         left = textGrob(expression(Mating~probability~(Phi[st])), rot = 90, vjust = 1),
+                         bottom = textGrob(expression(Mean~worm~burden~(W[st])), vjust = 0.2)))
 
 dev.off()
+
+
