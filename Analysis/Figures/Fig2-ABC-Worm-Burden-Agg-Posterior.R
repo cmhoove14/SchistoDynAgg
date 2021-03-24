@@ -63,7 +63,7 @@ kap_W_case1_plot <- abc_post_preds_kapW %>%
                      labels = c("0.001","0.01", "0.1", "1", "10", "100"),
                      limits = c(0.001,1000)) +
   labs(y = expression(Worm~Dispersion~Parameter~(kappa[st]^W)),
-       title = "A")
+       title = "A.   Case1")
 
 # Case2 PLot ----------------------
 case2_gee <- geeglm(log(q5_kap_W^-1) ~ log(q5_mean_W), id = as.factor(Shehia),
@@ -104,7 +104,7 @@ kap_W_case2_plot <- abc_post_preds_kapW %>%
                      breaks = c(0.001,0.01, 0.1, 1, 10, 100),
                      labels = c("0.001","0.01", "0.1", "1", "10", "100"),
                      limits = c(0.001,1000)) +
-  labs(title = "B")
+  labs(title = "B.   Case 2")
 
 # Case3 PLot ----------------------
 case3_gee <- geeglm(log(q5_kap_W^-1) ~ log(q5_mean_W), id = as.factor(Shehia),
@@ -142,7 +142,7 @@ kap_W_case3_plot <- abc_post_preds_kapW %>%
                      limits = c(0.001,1000)) +
   labs(x = expression(Mean~worm~burden~(W[st])),
        y = expression(Worm~Dispersion~Parameter~(kappa[st]^W)),
-       title = "C")
+       title = "C.   Case 3")
 
 # Case4 PLot ----------------------
 case4_gee <- geeglm(log(q5_kap_W^-1) ~ log(q5_mean_W), id = as.factor(Shehia),
@@ -183,7 +183,7 @@ kap_W_case4_plot <- abc_post_preds_kapW %>%
                      labels = c("0.001","0.01", "0.1", "1", "10", "100"),
                      limits = c(0.001,1000)) +
   labs(x = expression(Mean~worm~burden~(W[st])),
-       title = "D")
+       title = "D.   Case 4")
 
 #Fig 2: ABC kappa by W estimates ------------
 png(here::here("Figures/Fig2_ABC_Kap_by_W_Results.png"),
