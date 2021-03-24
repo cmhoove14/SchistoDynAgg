@@ -31,7 +31,7 @@ abc_bayesF_comp1_plot <- abc_bayesF_comp1 %>%
     stat_smooth() +
     geom_hline(yintercept = 1) +
     geom_point(alpha = 0.7) +
-    scale_y_continuous(trans = "log1p",
+    scale_y_continuous(trans = "log",
                        breaks = c(0.1, 1, 10, 100, 1000),
                        labels = c("0.1", "1", "10", "100", "1000"),
                        limits = c(0.1,max(abc_bayesF_comp1$BayesF))) +
@@ -46,12 +46,48 @@ abc_bayesF_comp1_plot <- abc_bayesF_comp1 %>%
     theme(legend.position = c(0.2, 0.85),
           legend.text = element_text(size = 8),
           legend.title = element_text(size = 10)) +
-    labs(x = expression(paste("Mean egg burden (\U2130"[st],")")),
+    labs(x = expression(paste("Mean egg burden (E"[st],")")),
          y = "Bayes Factor",
          col = "Comparison")
 
 abc_bayesF_comp1_plot
 
-ggsave(here::here("Figures/ABC_Bayes_Factors.png"),
+ggsave(here::here("Figures/SuppFig-ABC_Bayes_Factor_Comp1.png"),
        height = 5, width = 7, units = "in")
 
+
+
+# Bayes factors (Comparative estimate of model performance) in reference to case 2 -------------
+abc_bayesF_comp2 <- abc_bayes_comps %>% 
+  filter(Pop == "Comm") %>% 
+  dplyr::select(c("Isl","Shehia", "Year", "UF_mean", "UF_prev",
+                  "ItoII_BayesF", "IIItoII_BayesF", "IVtoII_BayesF")) %>% 
+  pivot_longer(cols      = c("ItoII_BayesF", "IIItoII_BayesF", "IVtoII_BayesF"),
+               names_to  = "Case",
+               values_to = "BayesF")
+
+abc_bayesF_comp2_plot <- abc_bayesF_comp2 %>% 
+  ggplot(aes(x = UF_mean, y = BayesF, col = Case)) +
+  stat_smooth() +
+  geom_hline(yintercept = 1) +
+  geom_point(alpha = 0.7) +
+  scale_y_continuous(trans = "log1p",
+                     breaks = c(0.1, 1, 10, 100, 1000),
+                     labels = c("0.1", "1", "10", "100", "1000"),
+                     limits = c(0.1,max(abc_bayesF_comp1$BayesF))) +
+  scale_x_continuous(trans = "log",
+                     breaks = c(0.01, 0.1, 1, 10, 100),
+                     labels = c("0.01", "0.1", "1", "10", "100")) +
+  scale_color_manual(values = c("ItoII_BayesF" = "#3b46ca",
+                                "IIItoII_BayesF" = "#bc86af",
+                                "IVtoII_BayesF" = "#009d23"),
+                     labels = c("Case 3 to Case 2", "Case 1 to Case 2","Case 4 to Case 2")) +
+  theme_classic() +
+  theme(legend.position = c(0.2, 0.85),
+        legend.text = element_text(size = 8),
+        legend.title = element_text(size = 10)) +
+  labs(x = expression(paste("Mean egg burden (\U2130"[st],")")),
+       y = "Bayes Factor",
+       col = "Comparison")
+
+abc_bayesF_comp2_plot
