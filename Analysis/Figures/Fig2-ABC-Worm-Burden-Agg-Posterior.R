@@ -223,3 +223,95 @@ save(list = c("case1_gee_fx", "case1_gee_coef1", "case1_gee_coef2",
               "case3_gee_fx", "case3_gee_coef1", "case3_gee_coef2",
               "case4_gee_fx", "case4_gee_coef1", "case4_gee_coef2"),
      file = here::here("Data/Derived/ABC_W_by_kap_GEEs.Rdata"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Miscellaneous checks -------------
+  
+
+
+
+
+
+
+abc_post_preds_kapW %>% 
+  filter(Pop == "Comm") %>% 
+  ggplot(aes(x = UF_mean, y = q5_kap_W, col = Case)) +
+    geom_point() +
+    theme_classic() +
+    scale_x_continuous(trans = "log",
+                       breaks = c(0.01,0.1,1,10,100)) +
+  ylim(c(0,1)) +
+  stat_smooth()
+
+
+
+
+
+
+
+
+# Investigate cluster -------
+# Plots all look like there are two distinct clusters, so want to look into what might be causing that
+abc_post_preds_kapW_clust <- readRDS(here::here("Data/Derived/abc_post_pred_checks.rds")) %>% 
+  filter(SumStat %in% c("E", "E_se","E_pos2n", "mean_W", "var_W","kap_W")) %>% 
+  pivot_wider(names_from = SumStat,
+              values_from = q025:IQR,
+              names_sep = "_") %>% 
+  left_join(yO, 
+            by = c("Isl"    = "Isl", 
+                   "Shehia" = "Shehia", 
+                   "Year"   = "Year", 
+                   "Pop"    = "pop")) %>% 
+  mutate(UF_prev     = UF_pos/n_ppl,
+         E_mse       = (UF_mean - q5_E)^2/n_ppl,
+         E_se_mse    = (UF_se - q5_E_se)^2/n_ppl,
+         E_pos2n_mse = (UFpos2n - q5_E_pos2n)^2/n_ppl,
+         MSE_sum     = E_mse+E_se_mse+E_pos2n_mse) %>% 
+  filter(Pop == "Comm" & Case == "case3") %>% 
+  mutate(clust = if_else(q5_kap_W <0.11, 1, 0))
+
+
+
+abc_post_preds_kapW_clust %>%
+  ggplot(aes(x = q5_mean_W,
+             y = q5_kap_W,
+             col = clust)) +
+  geom_point(aes(size = 1/MSE_sum),
+             show.legend = FALSE) +
+  #stat_smooth(col = "black") +
+  theme_classic() +
+  theme(axis.title.x = element_blank(),
+        plot.title = element_text(hjust = 0.1, vjust = -1)) +
+  scale_x_continuous(trans = "log",
+                     breaks = c(0.01, 0.1, 1, 10, 100),
+                     labels = c("0.01", "0.1", "1", "10", "100"),
+                     limits = c(0.005, max(abc_post_preds_kapW$q5_mean_W))) +
+  scale_y_continuous(trans = "log",
+                     breaks = c(0.001,0.01, 0.1, 1, 10, 100),
+                     labels = c("0.001","0.01", "0.1", "1", "10", "100"),
+                     limits = c(0.001,1000)) +
+  labs(y = expression(Worm~Dispersion~Parameter~(kappa[st]^W)),
+       title = "A.   Case1")
+
+
+boxplot(abc_post_preds_kapW_clust$UF_mean ~ abc_post_preds_kapW_clust$clust)
+boxplot(abc_post_preds_kapW_clust$UF_prev ~ abc_post_preds_kapW_clust$clust)
+boxplot(abc_post_preds_kapW_clust$UF_pos ~ abc_post_preds_kapW_clust$clust)
