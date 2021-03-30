@@ -27,7 +27,16 @@ abc_post_preds_SumStats_wide <- abc_post_preds_SumStats %>%
          E_pos2n_mse = (UFpos2n - q5_E_pos2n)^2/UFpos2n)
 
 
-
+abc_post_preds_SumStats_MSE_sum <- abc_post_preds_SumStats_wide %>% 
+  pivot_longer(E_mse:E_pos2n_mse,
+               names_to = "SumStat2",
+               values_to = "MSE") %>% 
+  mutate(SumStat = case_when(SumStat2 == "E_mse" ~ "Mean Egg Burden",
+                              SumStat2 == "E_se_mse" ~ "Std. Er Egg Burden",
+                              SumStat2 == "E_pos2n_mse" ~ "Adjusted Prevalence")) %>% 
+  group_by(SumStat, Case) %>% 
+  summarise(mean_mse = round(mean(MSE), 3),
+            label = paste0("Avg. MSE = ", mean_mse))
 
 
 
@@ -56,10 +65,10 @@ abc_obs_gen_comp <- abc_post_preds_SumStats_wide %>%
 
 abc_obs_gen_comp_plot <- abc_obs_gen_comp %>% 
   filter(Pop == "Comm") %>% 
-  ggplot(aes(x = Obs, y = GenMed, col = Case,
-             ymin = GenLoq, ymax = GenHiq)) +
-  geom_point(alpha = 0.5) +
-  #geom_errorbar(alpha = 0.5) +
+  ggplot(aes(x = Obs, y = GenMed)) +
+  geom_point(aes(col = Case),
+             alpha = 0.5) +
+  #geom_errorbar(aes(ymin = GenLoq, ymax = GenHiq), alpha = 0.5) +
   geom_abline(slope = 1, lty = 2) +
   scale_x_continuous(trans = "log1p",
                      breaks = c(0, 1, 10, 100),
@@ -71,6 +80,11 @@ abc_obs_gen_comp_plot <- abc_obs_gen_comp %>%
                      labels = c("0", "1", "10", "100")) +
   scale_color_manual(values = c("#3b46ca", "#fc45b7", "#bc86af", "#009d23")) +
   facet_grid(Case~SumStat) +
+  geom_text(
+    data    = abc_post_preds_SumStats_MSE_sum,
+    mapping = aes(x = 3, y = 50, label = label),
+    size = 2.5
+  ) +
   theme_classic() +
   theme(legend.position = "none",
         strip.background = element_rect(fill = NULL)) +
@@ -90,8 +104,6 @@ pdf(here::here("Figures/Fig3a_ABC_PostPred_Obs_Comp.pdf"),
 abc_obs_gen_comp_plot
 
 dev.off()
-
-#"Comparison of generated to observed summary statistics used in approximate bayesian computation estimation of community parasite burdens. Colors indicate the data generating Case and the 1:1 line implying perfect agreement between observed and generated data is shown. Error bars correspond to interquartile ranges of the generated summary statistics from parameter sets included in the posterior distribution."
 
 
 

@@ -64,8 +64,8 @@ f1_legend<-g_legend(strat_kap_iqr)
 png(here::here("Figures/Fig1_GEE_Results.png"),
                height = 7, width = 7, units = "in", res = 300)
 
-grid.arrange(arrangeGrob(kap_e_gee_plot + theme(legend.position="none"),
-                         strat_kap_iqr + theme(legend.position="none"),
+grid.arrange(arrangeGrob(kap_e_gee_plot + theme(legend.position="none") + labs(tag = "A."),
+                         strat_kap_iqr + theme(legend.position="none") + labs(tag = "B."),
                          nrow=2),
              f1_legend, widths=c(4, 1))
 
