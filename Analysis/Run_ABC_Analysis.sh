@@ -8,7 +8,7 @@
 #$ -m beas
 # 
 Rscript Analysis/0-Data-Process.R  
-Rscript Analysis/21-ABC-Worm-Burden-Estimation.R 100000  
+Rscript Analysis/21-ABC-Worm-Burden-Estimation.R 1000000  
 Rscript Analysis/22-ABC-Posteriors.R 1000  
 Rscript Analysis/23-ABC-Mod-Comps.R  
 Rscript Analysis/24-ABC-PostPred-Checks.R  

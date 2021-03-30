@@ -8,7 +8,7 @@ library(abc)
 
 devtools::load_all()
 
-abc_sims <- readRDS(here::here("Data/Derived/abc_fit_rejection_4cases_hrg_fixed_1e+05iterations.rds"))
+abc_sims <- readRDS(here::here("Data/Derived/abc_fit_rejection_4cases_hrg_fixed_1e+06iterations.rds"))
 yO <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
 
 # Get posterior summaries ----------------------

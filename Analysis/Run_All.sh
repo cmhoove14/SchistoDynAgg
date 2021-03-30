@@ -10,13 +10,8 @@
 Rscript Analysis/0-Data-Process.R  
 Rscript Analysis/11-Agg-Burden_GEE.R  
 Rscript Analysis/12-kappa_change_bootstrap.R  
-Rscript Analysis/1F-Fig1-AggGEE-Results.R  
-Rscript Analysis/21-ABC-Worm-Burden-Estimation.R  
-Rscript Analysis/22-ABC_Sims-PostProcess.R  
-Rscript Analysis/2F-ABC_Figs.R  
-Rscript Analysis/2F2-ABC-Mod-Comp-BayesF.R
-Rscript Analysis/2F3-ABC-Mate-Prob-Comp.R
-Rscript Analysis/2FS1-ABC-Data-Gen-Results.R
-Rscript Analysis/2FS2-ABC-Case3-Comparison.R
-Rscript Analysis/2FS3-ABC-EstW-to-obsE-Comp.R
+Rscript Analysis/21-ABC-Worm-Burden-Estimation.R 1000000  
+Rscript Analysis/22-ABC-Posteriors.R 1000  
+Rscript Analysis/23-ABC-Mod-Comps.R  
+Rscript Analysis/24-ABC-PostPred-Checks.R  
 
