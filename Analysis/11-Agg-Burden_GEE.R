@@ -33,12 +33,13 @@ zanz_kappa_E_gee <- function(E){
 }
 
 kap_e_gee_plot <- comm_sums %>%
-  ggplot(aes(x = UF_mean_mle,
-             y = UF_alpha_mle^-1, 
-             ymin = (UF_alpha_mle - UF_alpha_mle_se)^-1, ymax = (UF_alpha_mle + UF_alpha_mle_se)^-1,
+  ggplot(aes(x     = UF_mean,
+             y     = UF_alpha_mle^-1, 
+             ymin  = (UF_alpha_mle - UF_alpha_mle_se)^-1, 
+             ymax  = (UF_alpha_mle + UF_alpha_mle_se)^-1,
              shape = Intervention,
-             col = Isl,
-             size = 1/UF_alpha_mle_se)) +
+             col   = Isl,
+             size  = 1/UF_alpha_mle_se)) +
     geom_point(alpha = 0.6) +
     #geom_errorbar(alpha = 0.6) +
     #facet_grid(Intervention~Isl) +
@@ -52,7 +53,7 @@ kap_e_gee_plot <- comm_sums %>%
     stat_function(fun = zanz_kappa_E_gee, size = 1.2, col = "black") +
     scale_color_manual(values = c("#d0885f", "#2d474c")) +
     scale_shape_manual(values = c(17,18,15)) +
-    labs(y = expression(Egg~Dispersion~Parameter~(kappa[st]^E)),
+    labs(y = expression(Egg~Aggregation~Parameter~(kappa[st]^E)),
          x = expression(Mean~egg~burden~(E[st])))
 
 # kap_e_gee_plot

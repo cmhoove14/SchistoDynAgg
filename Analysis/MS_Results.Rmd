@@ -1,0 +1,168 @@
+---
+title: "Dynamic Aggregation Results"
+author: "Chris Hoover et al"
+date: "3/24/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = TRUE,
+                      include = FALSE,
+                      message = FALSE, 
+                      fig.cap = TRUE)
+
+library(quantreg)
+library(foreign)
+library(ggplot2)
+library(patchwork)
+library(tidyverse)
+library(ggeffects)
+library(lme4)
+library(kableExtra)
+library(geepack)
+library(gridExtra)
+library(rootSolve)
+library(abc)
+library(here)
+
+devtools::load_all()
+
+```
+
+```{r load_ZEST_data}
+chld <- readRDS(here::here("Data/Raw/children_Unguja_Pemba_2012_2017.rds"))
+
+adlt <- readRDS(here::here("Data/Raw/adults_Unguja_Pemba_2012_2017.rds"))
+
+# Filter out pilot observations of 50 children in year 2011 and only focus on study years 2012-2017
+comm_sums <- readRDS(here::here("Data/Derived/adults&chldrn_shehia_sums_Unguja_Pemba_2012_2017.rds")) %>% 
+  filter(Year != 2011)
+
+adlt_sums <- readRDS(here::here("Data/Derived/adults_shehia_sums_Unguja_Pemba_2012_2017.rds")) %>% 
+  filter(Year != 2011)
+
+chld_sums <- readRDS(here::here("Data/Derived/chldrn_shehia_sums_Unguja_Pemba_2012_2017.rds")) %>% 
+  filter(Year != 2011)
+
+
+yO <- readRDS(here::here("Data/Derived/ABC_yO_data.rds"))
+```
+
+# Results  
+```{r gee_res_load, include = FALSE}
+load(here::here("Data/Derived/gee_results.Rdata"))
+boot_out <- readRDS(here::here("Data/Derived/dispersion_change_IQR_boot10000.rds"))
+
+nboot <- 10000
+
+boot_out$E_IQR <- apply(boot_out, 1, function(x){
+  df <- get_boot_df(x[1], x[2], x[3])
+  
+  # 25th and 75th quantiles for IQR  
+  egg_burden025 <- quantile(df %>% 
+                              filter(!is.na(UF_alpha_mle_se)) %>% 
+                              pull(UF_mean), 0.25)
+  egg_burden075 <- quantile(df %>% 
+                              filter(!is.na(UF_alpha_mle_se)) %>% 
+                              pull(UF_mean), 0.75)
+
+  return(as.numeric(egg_burden075-egg_burden025))
+})
+
+boot_all_est <- boot_out %>% 
+  filter(Island == "All" & Treatment == "All" & Population == "All")
+
+```
+
+There were `r nrow(comm_sums %>% filter(UF_max == 0))` shehia-years in which no individuals had positive egg counts and `r nrow(comm_sums %>% filter(UF_max == 1))` shehia-years in which the maximum individual egg count was 1 and therefore variance estimates for $\alpha^\mathcal{E}_{st}$ could not be derived. This left `r nrow(comm_sums %>% filter(UF_max > 1))` observations of $\alpha^\mathcal{E}_{st}$ and $\mathcal{E}_{st}$, shown in Figure 1A along with the marginal estimate of $\mathbb{E}(\kappa^\mathcal{E}_{st}|\mathcal{E}_{st})$ from the fitted GEE. We estimate a median `r round(boot_all_est$boot_meds,3)` (Bootstrapped IQR: `r round(boot_all_est$boot_loqs,3)`-`r round(boot_all_est$boot_hiqs,3)`) increase in $\kappa^\mathcal{E}_{st}$ associated with an IQR increase in $\mathcal{E}_{st}$, implying a negative relationship between mean egg burden and aggregation. This relationship appears to be driven by dynamics in children, as there was weak evidence for a relationship between $\kappa^\mathcal{E}_{st}$ and $\mathcal{E}_{st}$ among adults (Fig 1B). Egg burden in adults ($IQR^A=$ `r round(boot_out %>% filter(Island == "All" & Treatment == "All" & Population == "Adults") %>% pull(E_IQR), 2)`) was substantially lower than in children ($IQR^C=$ `r round(boot_out %>% filter(Island == "All" & Treatment == "All" & Population == "Children") %>% pull(E_IQR), 2)`), however. Shehias receiving the MDA+snail control and MDA+behavior change interventions appeared to have a stronger burden-aggregation relationship (larger $\Delta\kappa_{IQR}$, Fig 1B). An additional GEE model including main effects of intervention arm and island showed that reductions in $\kappa^\mathcal{E}_{st}$ were significantly larger in shehias receiving the MDA+snail control and MDA+behavioral change interventions ($p=$ `r round(gee_adj_sum %>% filter(term == "InterventionSnail") %>% pull(p.value), 3)` and $p=$ `r round(gee_adj_sum %>% filter(term == "InterventionBehaviour") %>% pull(p.value), 3)`, respectively).
+
+
+```{r abc_BayesF, include = F}
+abc_bayesFs <- readRDS(here::here("Data/Derived/abc_mod_comps.rds"))
+abc_bayes_comps <- abc_bayesFs %>% 
+  rename("Isl_Shehia" = Shehia) %>% 
+  left_join(yO %>% mutate(Isl_Shehia = paste(Isl, Shehia,sep = "_")),
+            by = c("Isl_Shehia" = "Isl_Shehia",
+                   "Year" = "Year",
+                   "Pop" = "pop")) %>% 
+  mutate(UF_prev = UF_pos/n_ppl)
+
+
+
+abc_bayesF_comp1 <- abc_bayes_comps %>% 
+  filter(Pop == "Comm") %>% 
+  dplyr::select(c("Isl","Shehia", "Year", "UF_mean", "UF_prev",
+                  "IItoI_BayesF", "IIItoI_BayesF", "IVtoI_BayesF")) %>% 
+  pivot_longer(cols      = c("IItoI_BayesF", "IIItoI_BayesF", "IVtoI_BayesF"),
+               names_to  = "Case",
+               values_to = "BayesF")
+
+case3_bayesFs <- abc_bayesF_comp1 %>% 
+  filter(Case == "IIItoI_BayesF") %>% 
+  pull(BayesF)
+
+case2_bayesFs <- abc_bayesF_comp1 %>% 
+  filter(Case == "IItoI_BayesF") %>% 
+  pull(BayesF)
+
+case4_bayesFs <- abc_bayesF_comp1 %>% 
+  filter(Case == "IVtoI_BayesF") %>% 
+  pull(BayesF)
+
+```
+
+Examination of the Bayes factors comparing the posterior probabilities of each Case shows that the mechanistic Case 3 performs better than the canonical Case 1 (mean Bayes factor = `r round(mean(case3_bayesFs), 2)`, range `r round(min(case3_bayesFs), 2)`-`r round(max(case3_bayesFs), 2)`), while Case 2 (mean Bayes factor = `r round(mean(case2_bayesFs), 2)`, range `r round(min(case2_bayesFs), 2)`-`r round(max(case2_bayesFs), 2)`), and the hybrid Case 4 (mean Bayes factor = `r round(mean(case4_bayesFs), 2)`, range `r round(min(case4_bayesFs), 2)`-`r round(max(case4_bayesFs), 2)`) generally performed worse than Case 1. Superior performance of Case 3 was further confirmed by examination of the mean squared errors between the generated and observed data, with Case 3 generated data resulting in the lowest MSE across all three summary statistics (Fig 2).
+
+Case 1 and 3 estimates of $W_{st}$ and $\kappa^W_{st}$ exhibited a similar pattern to $\mathcal{E}_st$ and $\kappa^\mathcal{E}_{st}$, namely increasing aggregation (indicated by decreasing $\kappa$) with decreasing measures of burden (Fig 1 and Fig 3a and 3c). However, Case 2 and Case 4 estimates showed the opposite effect of decreasing aggregation with decreasing worm burden (Fig 3b and 3d), though it should be noted that these two data-generating cases performed worse both in terms of MSE of the summary statistics and the Bayes factor. 
+
+```{r mate_probs, include = FALSE}
+abc_post_preds_MateProb <- readRDS(here::here("Data/Derived/abc_post_pred_checks.rds")) %>% 
+  filter(SumStat %in% c("E", "E_se","E_pos2n", "mean_W", "kap_W", "prob_Phi")) %>% 
+  pivot_wider(names_from = SumStat,
+              values_from = q025:IQR,
+              names_sep = "_") %>% 
+  left_join(yO, 
+            by = c("Isl"    = "Isl", 
+                   "Shehia" = "Shehia", 
+                   "Year"   = "Year", 
+                   "Pop"    = "pop")) %>% 
+  mutate(UF_prev     = UF_pos/n_ppl,
+         E_mse       = (UF_mean - q5_E)^2/UF_mean,
+         E_se_mse    = (UF_se - q5_E_se)^2/UF_se,
+         E_pos2n_mse = (UFpos2n - q5_E_pos2n)^2/UFpos2n,
+         MSE_sum     = E_mse+E_se_mse+E_pos2n_mse)
+
+case1_kaps <- abc_post_preds_MateProb %>% 
+  filter(Pop == "Comm" & Case == "case1") %>% 
+  pull(q5_kap_W)
+
+case2_kaps <- abc_post_preds_MateProb %>% 
+  filter(Pop == "Comm" & Case == "case2") %>% 
+  pull(q5_kap_W)
+
+case3_kaps <- abc_post_preds_MateProb %>% 
+  filter(Pop == "Comm" & Case == "case3") %>% 
+  pull(q5_kap_W)
+
+case4_kaps <- abc_post_preds_MateProb %>% 
+  filter(Pop == "Comm" & Case == "case4") %>% 
+  pull(q5_kap_W)
+
+```
+
+Figure 4 shows the mating probability produced from the posterior distributions of all four data-generating cases. These estimates are also compared to analytic predictions of the mating probability for both static aggregation (Fig 4 solid lines) and dynamic aggregation ($\kappa=f(W)$, $\kappa=f(\mathcal{E})$, Fig 4 dashed and dotted lines, respectively). These analytic predictions generally align well with Case 1 and Case 3 estimates, but do frequently underestimate the mating probability. 
+
+
+## Figure captions  
+
+**Figure 1. Relationship between community egg burden and dispersion.**:  Panel A shows the scatterplot of all estimates of $\\kappa_{st}$ and $\\mathcal{E}_{st}$ where each point is sized according to its weight, derived as the inveerse of the standard error of $\\alpha_{st}$. Points are also symbolized according to their assigned intervention group--MDA only ($\\filledtriangleup$), MDA+snail control ($\\filleddiamond$), or MDA+behavioral intervention ($\\filledmedsquare$)--and the island of the shehia. The solid black line in panel A represents the marginal estimate of $\\mathbb{E}(\\kappa_{st}|\\mathcal{E}_{st})$ from the fitted GEE. Panel B shows estimates of $\\Delta\\kappa_{IQR}$, the change in aggregation for an interquartile range increase in community egg burden stratified by population, treatment group, and island. The black point and error bars correspond to the unstratified marginal estimate of $\\Delta\\kappa_{IQR}$ as in panel A. Error bars correspond to the interquartile range of estimates derived from B=5000 bootstrapped samples.
+
+
+**Figure 2: Comparison of observed summary statistics to the median summary statistics generated from 1,000 simulated datasets derived from the ABC posterior distributions for every shehia-year.** Colors and right-hand facet labels indicate the data generating Case and the 1:1 line implying perfect agreement between observed and generated data is shown. Posterior predictions from the mechanistic Case 3 data-generating mechanism (row 3, purple) were found to better reproduce the observed data, particularly the adjusted prevalence measure, though all data-generating mechanisms tended to overestimate mean community egg burden and standard error in low- burden settings.
+
+
+**Figure 3: ** Summary of approximate Bayesian computation estimates of community worm burden (W_st) and aggregation (κ_st^W) for Case 1 (Together, A), Case 2 (Separate, B), Case 3 (Mechanistic, C), and Case 4 (Hybrid, D). Dashed lines depict the marginal estimates of the fitted GEE for each Case: E(κ_st^(W_D ) |W_st^D). Axes are log transformed to aid visualization.
+
+
+**Figure 4: Comparison of mating probabilities derived analytically and from ABC posterior distributions.** Points depict the median mating probability across the median community worm burden from data generated for every shehia-year and Case from ABC posterior distributions. Solid lines depict analytical estimates of the mating probability assuming constant aggregation parameter, κ, equal to the median across all shehia-year observations. Dotted lines depict analytical estimates of the mating probability assuming aggregation changes as a function of burden according to the fitted egg burden GEE, and dashed lines depict analytical estimates of the mating probability assuming aggregation changes as a function of worm burden according the fitted worm burden GEE for each case (shown in Figure 3). Note that Case 2 analytical mating probability estimates are derived according to the Case 2 (distributed separately) mating probability function from [CITE Anderson], while all others are derived for the canonical Case (distributed together) mating probability function. 

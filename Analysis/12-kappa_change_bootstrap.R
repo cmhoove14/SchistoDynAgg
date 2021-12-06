@@ -67,9 +67,9 @@ boot_ests <- sapply(1:boot_samps, function(...){
       df %>% filter(Shehia == d)
     }))
   
-  # Got an error "contrasts can be applied only to factors with >=2 levels" which I think is thrown by initial glm fit when trying to fit a model with factor variable that only has one level. This was probably a 1 in a million occurrence where only one shehia ended up in the bootstrap data.frame, but inputting this ifelse in order to circumvent it should it happen again    
+  # For some strata with limited observations (e.g. many samples of adults resulted in very few positives leading to very few non-NA shehia-level observations), bootstrap sampling results in a sample that throws "Error in `contrasts<-`(`*tmp*`, value = contr.funs[1 + isOF[nn]]) : contrasts can be applied only to factors with 2 or more levels" due to all groups in the sample having two or fewer observations, so threw in this ifelse to skip over these samples
     
-  if(length(unique(boot_dat$Shehia)) < 2){
+  if(max(count(boot_dat[!duplicated(boot_dat),"Shehia"]) %>% pull(n)) <= 2){
     est.out <- NA_real_
   } else {
   # Fit model
@@ -96,9 +96,11 @@ boot_ests <- sapply(1:boot_samps, function(...){
 cl <- makeCluster(parallel::detectCores()-1)
 registerDoParallel(cl)
 
-boot_ests <- foreach(x=1:nrow(boot_sweeps), 
-                     .combine = cbind,
-                     .packages = c("tidyverse", "geepack"),
+boot_ests <- foreach(x            = 1:nrow(boot_sweeps), 
+                     .combine     = cbind,
+                     .packages    = c("tidyverse", "geepack"),
+                     .export      = c("get_boot_df", "get_boot_ests", "nboot",
+                                      "boot_sweeps", "comm_sums", "adlt_sums", "chld_sums"),
                      .options.RNG = 7491) %dorng% {
                        
                        boot_df <- get_boot_df(boot_sweeps[x,1], boot_sweeps[x,2], boot_sweeps[x,3])
@@ -114,4 +116,4 @@ boot_hiqs <- matrixStats::colQuantiles(boot_ests, probs = 0.75, na.rm = TRUE)
 
 boot_out <- cbind(boot_sweeps, boot_meds, boot_loqs, boot_hiqs)
 
-saveRDS(boot_out, paste0("dispersion_change_IQR_boot", nboot,".rds"))
+saveRDS(boot_out, here::here("Data/Derived", paste0("dispersion_change_IQR_boot", nboot,".rds")))

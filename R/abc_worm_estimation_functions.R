@@ -5,8 +5,30 @@
 
 
 # Couple util functions --------------
+#' @title Log-distributed sequence
+#'
+#' @description Functions just like `seq` but evenly distributes values across the full range
+#' rather than for instance `seq(0.000001, 10000, length.out = 100)` returning values that are all >100
+#'
+#' @param min minimum value in the sequence
+#' @param max maximum value in the sequence
+#' @param seq.length length of the sequence
+#'
+#' @return numeric vector spanning min and max with n = seq.length entries
+#' @export
+#'
+#'
 
-#' @title Quitely run
+exp_seq <- function(min, max, seq.length){
+  exp(seq(log(min), log(max), length.out = seq.length))
+}
+
+
+
+
+
+
+#' @title Quietly run
 #' 
 #' @description Run without outputting messages/warnings
 #' 
@@ -144,7 +166,7 @@ gen_case1_data <- function(pars, n){
   Ni <- rnbinom(n, mu = mean_W, size = disp_W) 
   
 # Simulate pairing assuming male and female distributed together  
-  Nf <- rpois(n, Ni*0.5)
+  Nf <- rbinom(Ni, Ni, 0.5)
   Nm <- Ni-Nf
   
 # Get number ated pairs as minimum of individual male and female burdens  
@@ -168,6 +190,7 @@ gen_case1_data <- function(pars, n){
            E_pos2n = E_pos2n,
            mean_W = mean(Ni),
            var_W = var(Ni),
+           kap_W = mle_kap(Ni),
            mean_Phi = mean(Xi),
            var_Phi = var(Xi),
            prob_Phi = (sum(Xi)*2)/sum(Ni),
@@ -222,6 +245,7 @@ gen_case2_data <- function(pars, n){
            E_pos2n = E_pos2n,
            mean_W = mean(Ni),
            var_W = var(Ni),
+           kap_W = mle_kap(Ni),
            mean_Phi = mean(Xi),
            var_Phi = var(Xi),
            prob_Phi = (sum(Xi)*2)/sum(Ni),
@@ -292,11 +316,12 @@ gen_case12_pars <- function(iterations,
 #'
 
 gen_case3_data <- function(pars, n){
-  susc_shape <- pars[1]    # Susceptibility shape1
-  susc_rate <- pars[2]     # Susceptibility shape2
+  mean_C <- pars[1]       # mean cercarial exposure
+  disp_C <- 1/pars[2]      # distribution of cercarial exposures
   
-  mean_C <- pars[3]       # mean cercarial exposure
-  disp_C <- 1/pars[4]      # distribution of cercarial exposures
+  susc_shape <- pars[3]    # Susceptibility shape1
+  susc_rate <- pars[4]     # Susceptibility shape2
+  
 # Individual susceptibilities  
   Si <- rgamma(n, shape = susc_shape, scale = susc_rate)
   
@@ -307,7 +332,7 @@ gen_case3_data <- function(pars, n){
   Ni <- rpois(n,Ci*Si)
   
 # Cercarial exposures which are female assuming equal sex distribution
-  Fi <- rpois(n, Ci*0.5)
+  Fi <- rbinom(Ci, Ci, 0.5)
   
 # Female worms from hypergeometric dist'n
   Nf <- rhyper(n, Ci-Fi, Fi, Ni)
@@ -336,6 +361,7 @@ gen_case3_data <- function(pars, n){
            E_pos2n = E_pos2n,
            mean_W = mean(Ni),
            var_W = var(Ni),
+           kap_W = mle_kap(Ni),
            mean_Phi = mean(Xi),
            var_Phi = var(Xi),
            prob_Phi = (sum(Xi)*2)/sum(Ni),
@@ -388,15 +414,15 @@ gen_case3_pars <- function(iterations,
                            r_lo, r_hi,
                            g_lo, g_hi){
   
-  alpha_S <- exp(runif(iterations, log(susc_shape_lo), log(susc_shape_hi)))
-  beta_S <- exp(runif(iterations, log(susc_rate_lo), log(susc_rate_hi)))
   mean_C <- exp(runif(iterations, log(mean_C_lo), log(mean_C_hi)))
   disp_C <- exp(runif(iterations, log(disp_C_lo), log(disp_C_hi)))
+  alpha_S <- exp(runif(iterations, log(susc_shape_lo), log(susc_shape_hi)))
+  beta_S <- exp(runif(iterations, log(susc_rate_lo), log(susc_rate_hi)))
   h <- exp(runif(iterations, log(h_lo), log(h_hi)))
   r <- exp(runif(iterations, log(r_lo), log(r_hi)))
   g <- exp(runif(iterations, log(g_lo), log(g_hi)))
   
-  return(cbind(alpha_S, beta_S, mean_C, disp_C, h, r, g))
+  return(cbind(mean_C, disp_C, alpha_S, beta_S, h, r, g))
   
 }
 
@@ -426,7 +452,7 @@ gen_case4_data <- function(pars, n){
 # Simulate individual worm burdens following case 1 dynamics  
   Ni1 <- rnbinom(n, mu = mean_W * part_W, size = disp_W) 
   
-  Nf1 <- rpois(n, Ni1*0.5)
+  Nf1 <- rbinom(Ni1, Ni1, 0.5)
   Nm1 <- Ni1-Nf1
   
 # Simulate individual worm burdens following case 2 dynamics    
@@ -459,6 +485,7 @@ gen_case4_data <- function(pars, n){
            E_pos2n = E_pos2n,
            mean_W = mean(Ni),
            var_W = var(Ni),
+           kap_W = mle_kap(Ni),
            mean_Phi = mean(Xi),
            var_Phi = var(Xi),
            prob_Phi = (sum(Xi)*2)/sum(Ni),
@@ -563,10 +590,10 @@ gen_case4_pars <- function(iterations,
     
   # Generate parameter sets for case 3 
     pars3 <- gen_case3_pars(iterations = iterations,
-                            susc_shape_lo = susc_shape_lo, susc_shape_hi = susc_shape_hi,
-                            susc_rate_lo = susc_rate_lo, susc_rate_hi = susc_rate_hi,
                             mean_C_lo = mean_C_lo, mean_C_hi = mean_C_hi,
                             disp_C_lo = disp_C_lo, disp_C_hi = disp_C_hi, 
+                            susc_shape_lo = susc_shape_lo, susc_shape_hi = susc_shape_hi,
+                            susc_rate_lo = susc_rate_lo, susc_rate_hi = susc_rate_hi,
                             h_lo = h_lo, h_hi = h_hi, 
                             r_lo = r_lo, r_hi = r_hi,
                             g_lo = g_lo, g_hi = g_hi)
@@ -587,34 +614,38 @@ gen_case4_pars <- function(iterations,
     dat4 <- t(apply(X = pars4, 1, gen_case4_data, n = obs_data[["n_ppl"]]))
 
   out_init <- tryCatch({
-  # Use abc to get posteriors with ridge regression correction
+  # Use abc to get posteriors with no correction. Was using ridge regression, but this was overkill for final approach and led to some estimates being "corrected" into unreasonable parameter space
     abc1 <- abc(target = obs_sum,
                 param = pars12[,1:2],  # Mean and dispersion parameter
                 sumstat = dat1[,1:3],  # Three summary stats
                 tol = 100/iterations,
-                transf = "log",
-                method = "ridge")
+                #transf = "log",
+                #method = "ridge",
+                method = "rejection")
 
     abc2 <- abc(target = obs_sum,
                 param = pars12[,1:2],  # Mean and dispersion parameter
                 sumstat = dat2[,1:3],  # Three summary stats
                 tol = 100/iterations,
-                transf = "log",
-                method = "ridge")
+                #transf = "log",
+                #method = "ridge",
+                method = "rejection")
   
     abc3 <- abc(target = obs_sum,
-                param = pars3[,3:4],   # Mean and dispersion of cercarial exposure
+                param = pars3[,1:2],   # Mean and dispersion of cercarial exposure
                 sumstat = dat3[,1:3],  # Three summary stats
                 tol = 100/iterations,
-                transf = "log",
-                method = "ridge")
+                #transf = "log",
+                #method = "ridge",
+                method = "rejection")
 
     abc4 <- abc(target = obs_sum,
                 param = pars4[,1:3],   # Mean and dispersion parameters and partitioning parameter
                 sumstat = dat4[,1:3],  # Three summary stats
                 tol = 100/iterations,
-                transf = "log",
-                method = "ridge")
+                #transf = "log",
+                #method = "ridge",
+                method = "rejection")
     
         
     abc_postpr <- postpr(target = obs_sum,
@@ -638,7 +669,46 @@ gen_case4_pars <- function(iterations,
     list(cond)
   })  
 
-    return(c(list(obs_data[["Shehia"]], obs_data[["Year"]]), obs_data[["pop"]],
-             out_init))
+  return(c(list(paste(obs_data[["Isl"]], obs_data[["Shehia"]], sep = "_"), 
+                obs_data[["Year"]], 
+                obs_data[["pop"]]),
+           out_init))
 
   }
+
+
+
+
+
+
+
+#' @title ABC Posterior Predictive Check data generation
+#' 
+#' @description Generate data from parameter posterior distributions and compare to observed
+#' 
+#' @param posteriors Matrix of posteriors
+#' @param fixed_pars vector of parameters needed for data generation but not drawn from posterior distribution
+#' @param n_ppl number of people in community to generate data for
+#' @param data_gen_fx data generation function (e.g. gen_case1_data; see above)
+#' 
+#' @return matrix with dim n_reps by number of summary statistics (3 for this analysis)
+#' @export
+#'
+
+post_pred_data_gen <- function(posteriors, fixed_pars, n_ppl, data_gen_fx){
+  
+  out <- apply(posteriors, 1, function(p){
+    use_pars <- c(p, fixed_pars)
+    
+    gen_data <- data_gen_fx(pars = use_pars,
+                            n    = n_ppl)
+    
+    gen_data[1:10]
+    
+  })
+
+  return(out)
+
+}
+
+

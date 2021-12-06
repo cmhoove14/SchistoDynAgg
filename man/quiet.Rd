@@ -2,7 +2,7 @@
 % Please edit documentation in R/abc_worm_estimation_functions.R
 \name{quiet}
 \alias{quiet}
-\title{Quitely run}
+\title{Quietly run}
 \usage{
 quiet(x)
 }
